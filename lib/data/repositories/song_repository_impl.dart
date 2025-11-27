@@ -1,0 +1,49 @@
+import '../../domain/entities/song.dart';
+import '../../domain/repositories/song_repository.dart';
+import '../datasources/local_data_source.dart';
+import '../datasources/remote_data_source.dart';
+import '../models/song_model.dart';
+
+class SongRepositoryImpl implements SongRepository {
+  final RemoteDataSource remoteDataSource;
+  final LocalDataSource localDataSource;
+
+  SongRepositoryImpl({
+    required this.remoteDataSource,
+    required this.localDataSource,
+  });
+
+  @override
+  Future<List<Song>> searchSongs(
+    String query, {
+    int offset = 0,
+    int limit = 20,
+  }) async {
+    return await remoteDataSource.searchSongs(
+      query,
+      offset: offset,
+      limit: limit,
+    );
+  }
+
+  @override
+  Future<void> addToFavorites(Song song) async {
+    final songModel = SongModel.fromEntity(song);
+    await localDataSource.addToFavorites(songModel);
+  }
+
+  @override
+  Future<void> removeFromFavorites(int trackId) async {
+    await localDataSource.removeFromFavorites(trackId);
+  }
+
+  @override
+  Future<List<Song>> getFavorites() async {
+    return await localDataSource.getFavorites();
+  }
+
+  @override
+  Future<bool> isFavorite(int trackId) async {
+    return await localDataSource.isFavorite(trackId);
+  }
+}
