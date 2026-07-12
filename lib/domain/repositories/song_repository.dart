@@ -6,4 +6,6 @@ abstract class SongRepository {
   Future<void> removeFromFavorites(int trackId);
   Future<List<Song>> getFavorites();
   Future<bool> isFavorite(int trackId);
+  Future<void> addToRecentlyPlayed(Song song);
+  Future<List<Song>> getRecentlyPlayed();
 }

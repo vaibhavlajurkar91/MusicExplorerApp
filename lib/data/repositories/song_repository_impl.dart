@@ -46,4 +46,15 @@ class SongRepositoryImpl implements SongRepository {
   Future<bool> isFavorite(int trackId) async {
     return await localDataSource.isFavorite(trackId);
   }
+
+  @override
+  Future<void> addToRecentlyPlayed(Song song) async {
+    final songModel = SongModel.fromEntity(song);
+    await localDataSource.addToRecentlyPlayed(songModel);
+  }
+
+  @override
+  Future<List<Song>> getRecentlyPlayed() async {
+    return await localDataSource.getRecentlyPlayed();
+  }
 }

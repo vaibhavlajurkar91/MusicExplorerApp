@@ -1,6 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/home_controller.dart';
+import '../controllers/recently_played_controller.dart';
 import '../controllers/theme_controller.dart';
 import '../widgets/shimmer_song_card.dart';
 import '../widgets/song_card.dart';
@@ -26,9 +28,13 @@ class _HomeScreenState extends State<HomeScreen> {
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
-      final controller = Get.find<HomeController>();
-      controller.loadMoreSongs();
+      Get.find<HomeController>().loadMoreSongs();
     }
+  }
+
+  void _openSong(song) {
+    Get.find<RecentlyPlayedController>().addSong(song);
+    Get.to(() => SongDetailScreen(song: song));
   }
 
   @override
@@ -49,9 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Obx(
             () => IconButton(
               icon: Icon(
-                themeController.isDarkMode
-                    ? Icons.light_mode
-                    : Icons.dark_mode,
+                themeController.isDarkMode ? Icons.light_mode : Icons.dark_mode,
               ),
               onPressed: () => themeController.toggleTheme(),
             ),
@@ -82,15 +86,81 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 filled: true,
               ),
-              onChanged: (value) {
-                setState(() {});
-              },
+              onChanged: (value) => setState(() {}),
               onSubmitted: (value) {
                 if (value.isNotEmpty) {
                   Get.find<HomeController>().searchSongs(query: value);
                 }
               },
             ),
+          ),
+          // Recently Played section
+          GetX<RecentlyPlayedController>(
+            builder: (recentController) {
+              if (recentController.songs.isEmpty) return const SizedBox.shrink();
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text(
+                      'Recently Played',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 110,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      itemCount: recentController.songs.length,
+                      itemBuilder: (context, index) {
+                        final song = recentController.songs[index];
+                        return GestureDetector(
+                          onTap: () => _openSong(song),
+                          child: Container(
+                            width: 80,
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            child: Column(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: CachedNetworkImage(
+                                    imageUrl: song.artworkUrl100,
+                                    width: 72,
+                                    height: 72,
+                                    fit: BoxFit.cover,
+                                    errorWidget: (_, __, ___) => Container(
+                                      width: 72,
+                                      height: 72,
+                                      color: Colors.grey[300],
+                                      child: const Icon(Icons.music_note),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  song.trackName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              );
+            },
           ),
           Expanded(
             child: GetX<HomeController>(
@@ -107,11 +177,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
-                          Icons.error_outline,
-                          size: 64,
-                          color: Colors.red,
-                        ),
+                        const Icon(Icons.error_outline,
+                            size: 64, color: Colors.red),
                         const SizedBox(height: 16),
                         Text(
                           'Error loading songs',
@@ -128,9 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
 
                 if (controller.songs.isEmpty) {
-                  return const Center(
-                    child: Text('No songs found'),
-                  );
+                  return const Center(child: Text('No songs found'));
                 }
 
                 return RefreshIndicator(
@@ -143,18 +208,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       if (index >= controller.songs.length) {
                         return const Padding(
                           padding: EdgeInsets.all(16.0),
-                          child: Center(
-                            child: CircularProgressIndicator(),
-                          ),
+                          child: Center(child: CircularProgressIndicator()),
                         );
                       }
-
                       final song = controller.songs[index];
                       return SongCard(
                         song: song,
-                        onTap: () {
-                          Get.to(() => SongDetailScreen(song: song));
-                        },
+                        onTap: () => _openSong(song),
                       );
                     },
                   ),
