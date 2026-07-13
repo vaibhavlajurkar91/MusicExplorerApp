@@ -23,7 +23,12 @@ class SongDetailController extends GetxController {
     super.onInit();
     player = Get.find<PlayerController>();
     _checkFavoriteStatus();
-    player.playSong(song);
+    // Only auto-play when this isn't already the active song. Otherwise opening
+    // the detail view of the current song (e.g. by tapping the mini player)
+    // would call playSong() on the same track and toggle it to paused.
+    if (player.currentSong?.trackId != song.trackId) {
+      player.playSong(song);
+    }
   }
 
   Future<void> _checkFavoriteStatus() async {
