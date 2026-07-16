@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/mini_player.dart';
 import 'favorites_screen.dart';
 import 'home_screen.dart';
+import 'playlists_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -16,6 +17,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   final List<Widget> _screens = [
     const HomeScreen(),
     const FavoritesScreen(),
+    const PlaylistsScreen(),
   ];
 
   @override
@@ -41,6 +43,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               BottomNavigationBarItem(
                 icon: Icon(Icons.favorite),
                 label: 'Favorites',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.queue_music),
+                label: 'Playlists',
               ),
             ],
           ),

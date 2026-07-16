@@ -1,3 +1,4 @@
+import '../entities/playlist.dart';
 import '../entities/song.dart';
 
 abstract class SongRepository {
@@ -8,4 +9,7 @@ abstract class SongRepository {
   Future<bool> isFavorite(int trackId);
   Future<void> addToRecentlyPlayed(Song song);
   Future<List<Song>> getRecentlyPlayed();
+  Future<List<Playlist>> getPlaylists();
+  Future<void> savePlaylist(Playlist playlist);
+  Future<void> deletePlaylist(String id);
 }

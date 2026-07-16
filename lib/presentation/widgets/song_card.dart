@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../domain/entities/song.dart';
 import '../controllers/favorites_controller.dart';
+import 'add_to_playlist_sheet.dart';
 
 class SongCard extends StatelessWidget {
   final Song song;
@@ -19,6 +20,7 @@ class SongCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ListTile(
+        onLongPress: () => AddToPlaylistSheet.show(context, song),
         contentPadding: const EdgeInsets.all(8),
         leading: ClipRRect(
           borderRadius: BorderRadius.circular(8),

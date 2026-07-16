@@ -1,9 +1,11 @@
 import 'package:hive/hive.dart';
+import '../models/playlist_model.dart';
 import '../models/song_model.dart';
 
 class LocalDataSource {
   static const String favoritesBoxName = 'favorites';
   static const String recentlyPlayedBoxName = 'recently_played';
+  static const String playlistsBoxName = 'playlists';
   static const int _maxRecentlyPlayed = 20;
 
   Future<Box<SongModel>> _getFavoritesBox() async {
@@ -53,5 +55,24 @@ class LocalDataSource {
   Future<List<SongModel>> getRecentlyPlayed() async {
     final box = await _getRecentlyPlayedBox();
     return box.values.toList().reversed.toList();
+  }
+
+  Future<Box<String>> _getPlaylistsBox() async {
+    return await Hive.openBox<String>(playlistsBoxName);
+  }
+
+  Future<List<PlaylistModel>> getPlaylists() async {
+    final box = await _getPlaylistsBox();
+    return box.values.map(PlaylistModel.deserialize).toList();
+  }
+
+  Future<void> savePlaylist(PlaylistModel playlist) async {
+    final box = await _getPlaylistsBox();
+    await box.put(playlist.id, playlist.serialize());
+  }
+
+  Future<void> deletePlaylist(String id) async {
+    final box = await _getPlaylistsBox();
+    await box.delete(id);
   }
 }
