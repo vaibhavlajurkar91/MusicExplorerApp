@@ -9,6 +9,8 @@ class SongModel extends Song {
   @HiveField(0)
   final int trackId;
 
+  cocobdon
+
   @override
   @HiveField(1)
   final String trackName;
