@@ -13,6 +13,7 @@ class HomeController extends GetxController {
   final _hasMore = true.obs;
   final _searchQuery = 'pop'.obs;
   final _error = ''.obs;
+  final _selectedGenre = RxnString('pop');
 
   List<Song> get songs => _songs;
   bool get isLoading => _isLoading.value;
@@ -20,6 +21,7 @@ class HomeController extends GetxController {
   bool get hasMore => _hasMore.value;
   String get searchQuery => _searchQuery.value;
   String get error => _error.value;
+  String? get selectedGenre => _selectedGenre.value;
 
   int _offset = 0;
   static const int _limit = 20;
@@ -30,12 +32,22 @@ class HomeController extends GetxController {
     searchSongs();
   }
 
-  Future<void> searchSongs({String? query}) async {
+  Future<void> selectGenre(String genre) async {
+    _selectedGenre.value = genre;
+    await searchSongs(query: genre, fromGenre: true);
+  }
+
+  void clearGenreSelection() {
+    _selectedGenre.value = null;
+  }
+
+  Future<void> searchSongs({String? query, bool fromGenre = false}) async {
     if (query != null) {
       _searchQuery.value = query;
       _songs.clear();
       _offset = 0;
       _hasMore.value = true;
+      if (!fromGenre) _selectedGenre.value = null;
     }
 
     if (_searchQuery.value.isEmpty) return;

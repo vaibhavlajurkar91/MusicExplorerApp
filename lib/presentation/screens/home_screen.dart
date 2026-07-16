@@ -15,6 +15,17 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
+const _genres = [
+  ('Pop', 'pop'),
+  ('Rock', 'rock'),
+  ('Hip-Hop', 'hip-hop'),
+  ('Jazz', 'jazz'),
+  ('Electronic', 'electronic'),
+  ('Classical', 'classical'),
+  ('R&B', 'r&b'),
+  ('Country', 'country'),
+];
+
 class _HomeScreenState extends State<HomeScreen> {
   final _scrollController = ScrollController();
   final _searchController = TextEditingController();
@@ -76,7 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: const Icon(Icons.clear),
                         onPressed: () {
                           _searchController.clear();
-                          Get.find<HomeController>().searchSongs(query: 'pop');
+                          Get.find<HomeController>().selectGenre('pop');
                           setState(() {});
                         },
                       )
@@ -86,7 +97,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 filled: true,
               ),
-              onChanged: (value) => setState(() {}),
+              onChanged: (value) {
+                Get.find<HomeController>().clearGenreSelection();
+                setState(() {});
+              },
               onSubmitted: (value) {
                 if (value.isNotEmpty) {
                   Get.find<HomeController>().searchSongs(query: value);
@@ -94,6 +108,34 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
           ),
+          // Genre filter chips
+          Obx(() {
+            final homeController = Get.find<HomeController>();
+            return SizedBox(
+              height: 44,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: _genres.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final (label, value) = _genres[index];
+                  final selected =
+                      homeController.selectedGenre == value;
+                  return ChoiceChip(
+                    label: Text(label),
+                    selected: selected,
+                    onSelected: (_) {
+                      _searchController.clear();
+                      homeController.selectGenre(value);
+                      setState(() {});
+                    },
+                  );
+                },
+              ),
+            );
+          }),
+          const SizedBox(height: 8),
           // Recently Played section
           GetX<RecentlyPlayedController>(
             builder: (recentController) {
