@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:hive/hive.dart';
 import '../models/playlist_model.dart';
 import '../models/song_model.dart';
@@ -6,7 +7,10 @@ class LocalDataSource {
   static const String favoritesBoxName = 'favorites';
   static const String recentlyPlayedBoxName = 'recently_played';
   static const String playlistsBoxName = 'playlists';
+  static const String searchHistoryBoxName = 'search_history';
+  static const String _historyKey = 'queries';
   static const int _maxRecentlyPlayed = 20;
+  static const int _maxHistory = 10;
 
   Future<Box<SongModel>> _getFavoritesBox() async {
     return await Hive.openBox<SongModel>(favoritesBoxName);
@@ -74,5 +78,37 @@ class LocalDataSource {
   Future<void> deletePlaylist(String id) async {
     final box = await _getPlaylistsBox();
     await box.delete(id);
+  }
+
+  Future<Box<String>> _getHistoryBox() async {
+    return await Hive.openBox<String>(searchHistoryBoxName);
+  }
+
+  Future<List<String>> getSearchHistory() async {
+    final box = await _getHistoryBox();
+    final raw = box.get(_historyKey);
+    if (raw == null) return [];
+    return List<String>.from(jsonDecode(raw) as List);
+  }
+
+  Future<void> addToSearchHistory(String query) async {
+    final box = await _getHistoryBox();
+    final history = await getSearchHistory();
+    history.remove(query);
+    history.insert(0, query);
+    if (history.length > _maxHistory) history.removeLast();
+    await box.put(_historyKey, jsonEncode(history));
+  }
+
+  Future<void> removeFromSearchHistory(String query) async {
+    final box = await _getHistoryBox();
+    final history = await getSearchHistory();
+    history.remove(query);
+    await box.put(_historyKey, jsonEncode(history));
+  }
+
+  Future<void> clearSearchHistory() async {
+    final box = await _getHistoryBox();
+    await box.delete(_historyKey);
   }
 }

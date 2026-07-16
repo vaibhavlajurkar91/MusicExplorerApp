@@ -14,6 +14,7 @@ class HomeController extends GetxController {
   final _searchQuery = 'pop'.obs;
   final _error = ''.obs;
   final _selectedGenre = RxnString('pop');
+  final _searchHistory = <String>[].obs;
 
   List<Song> get songs => _songs;
   bool get isLoading => _isLoading.value;
@@ -22,6 +23,7 @@ class HomeController extends GetxController {
   String get searchQuery => _searchQuery.value;
   String get error => _error.value;
   String? get selectedGenre => _selectedGenre.value;
+  List<String> get searchHistory => _searchHistory;
 
   int _offset = 0;
   static const int _limit = 20;
@@ -29,7 +31,23 @@ class HomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _loadHistory();
     searchSongs();
+  }
+
+  Future<void> _loadHistory() async {
+    final results = await repository.getSearchHistory();
+    _searchHistory.value = results;
+  }
+
+  Future<void> removeFromHistory(String query) async {
+    await repository.removeFromSearchHistory(query);
+    _searchHistory.remove(query);
+  }
+
+  Future<void> clearHistory() async {
+    await repository.clearSearchHistory();
+    _searchHistory.clear();
   }
 
   Future<void> selectGenre(String genre) async {
@@ -47,7 +65,12 @@ class HomeController extends GetxController {
       _songs.clear();
       _offset = 0;
       _hasMore.value = true;
-      if (!fromGenre) _selectedGenre.value = null;
+      if (!fromGenre) {
+        _selectedGenre.value = null;
+        await repository.addToSearchHistory(query);
+        _searchHistory.remove(query);
+        _searchHistory.insert(0, query);
+      }
     }
 
     if (_searchQuery.value.isEmpty) return;

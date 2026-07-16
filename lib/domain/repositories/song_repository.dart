@@ -12,4 +12,8 @@ abstract class SongRepository {
   Future<List<Playlist>> getPlaylists();
   Future<void> savePlaylist(Playlist playlist);
   Future<void> deletePlaylist(String id);
+  Future<List<String>> getSearchHistory();
+  Future<void> addToSearchHistory(String query);
+  Future<void> removeFromSearchHistory(String query);
+  Future<void> clearSearchHistory();
 }

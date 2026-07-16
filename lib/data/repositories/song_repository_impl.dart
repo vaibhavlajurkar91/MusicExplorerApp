@@ -75,4 +75,24 @@ class SongRepositoryImpl implements SongRepository {
   Future<void> deletePlaylist(String id) async {
     await localDataSource.deletePlaylist(id);
   }
+
+  @override
+  Future<List<String>> getSearchHistory() async {
+    return await localDataSource.getSearchHistory();
+  }
+
+  @override
+  Future<void> addToSearchHistory(String query) async {
+    await localDataSource.addToSearchHistory(query);
+  }
+
+  @override
+  Future<void> removeFromSearchHistory(String query) async {
+    await localDataSource.removeFromSearchHistory(query);
+  }
+
+  @override
+  Future<void> clearSearchHistory() async {
+    await localDataSource.clearSearchHistory();
+  }
 }

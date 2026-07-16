@@ -29,11 +29,16 @@ const _genres = [
 class _HomeScreenState extends State<HomeScreen> {
   final _scrollController = ScrollController();
   final _searchController = TextEditingController();
+  final _searchFocusNode = FocusNode();
+  bool _isSearchFocused = false;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    _searchFocusNode.addListener(() {
+      setState(() => _isSearchFocused = _searchFocusNode.hasFocus);
+    });
   }
 
   void _onScroll() {
@@ -52,6 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _scrollController.dispose();
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -79,6 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.all(16.0),
             child: TextField(
               controller: _searchController,
+              focusNode: _searchFocusNode,
               decoration: InputDecoration(
                 hintText: 'Search for songs...',
                 prefixIcon: const Icon(Icons.search),
@@ -103,11 +110,69 @@ class _HomeScreenState extends State<HomeScreen> {
               },
               onSubmitted: (value) {
                 if (value.isNotEmpty) {
+                  _searchFocusNode.unfocus();
                   Get.find<HomeController>().searchSongs(query: value);
                 }
               },
             ),
           ),
+          // Search history panel (visible when field is focused and empty)
+          if (_isSearchFocused && _searchController.text.isEmpty)
+            Obx(() {
+              final homeController = Get.find<HomeController>();
+              if (homeController.searchHistory.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Recent searches',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        TextButton(
+                          onPressed: homeController.clearHistory,
+                          child: const Text('Clear all'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: homeController.searchHistory.length,
+                    itemBuilder: (context, index) {
+                      final query = homeController.searchHistory[index];
+                      return ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.history, size: 20),
+                        title: Text(query),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.close, size: 18),
+                          onPressed: () =>
+                              homeController.removeFromHistory(query),
+                        ),
+                        onTap: () {
+                          _searchController.text = query;
+                          _searchFocusNode.unfocus();
+                          homeController.searchSongs(query: query);
+                        },
+                      );
+                    },
+                  ),
+                  const Divider(height: 1),
+                ],
+              );
+            }),
           // Genre filter chips
           Obx(() {
             final homeController = Get.find<HomeController>();
