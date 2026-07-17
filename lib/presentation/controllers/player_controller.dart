@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:get/get.dart';
 import '../../domain/entities/song.dart';
@@ -9,12 +10,17 @@ class PlayerController extends GetxController {
   final _isPlaying = false.obs;
   final _duration = Duration.zero.obs;
   final _position = Duration.zero.obs;
+  final _sleepTimerRemaining = Rxn<Duration>();
+
+  Timer? _sleepTimer;
 
   Song? get currentSong => _currentSong.value;
   bool get isPlaying => _isPlaying.value;
   Duration get duration => _duration.value;
   Duration get position => _position.value;
   bool get hasActiveSong => _currentSong.value != null;
+  Duration? get sleepTimerRemaining => _sleepTimerRemaining.value;
+  bool get hasSleepTimer => _sleepTimerRemaining.value != null;
 
   @override
   void onInit() {
@@ -75,8 +81,45 @@ class PlayerController extends GetxController {
     await _audioPlayer.seek(position);
   }
 
+  void setSleepTimer(Duration duration) {
+    _clearSleepTimer();
+    _sleepTimerRemaining.value = duration;
+    _sleepTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      final remaining = _sleepTimerRemaining.value;
+      if (remaining == null) return;
+      if (remaining.inSeconds <= 1) {
+        _audioPlayer.pause();
+        _isPlaying.value = false;
+        _clearSleepTimer();
+        Get.snackbar(
+          'Sleep Timer',
+          'Playback stopped',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      } else {
+        _sleepTimerRemaining.value = remaining - const Duration(seconds: 1);
+      }
+    });
+  }
+
+  void cancelSleepTimer() {
+    _clearSleepTimer();
+    Get.snackbar(
+      'Sleep Timer',
+      'Timer cancelled',
+      snackPosition: SnackPosition.BOTTOM,
+    );
+  }
+
+  void _clearSleepTimer() {
+    _sleepTimer?.cancel();
+    _sleepTimer = null;
+    _sleepTimerRemaining.value = null;
+  }
+
   @override
   void onClose() {
+    _clearSleepTimer();
     _audioPlayer.dispose();
     super.onClose();
   }

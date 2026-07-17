@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/player_controller.dart';
 import '../screens/song_detail_screen.dart';
+import 'sleep_timer_sheet.dart';
 
 class MiniPlayer extends StatelessWidget {
   const MiniPlayer({super.key});
@@ -84,6 +85,13 @@ class MiniPlayer extends StatelessWidget {
                         ],
                       ),
                     ),
+                    if (player.hasSleepTimer)
+                      IconButton(
+                        icon: const Icon(Icons.bedtime, size: 20),
+                        color: Theme.of(context).colorScheme.primary,
+                        tooltip: 'Sleep timer active',
+                        onPressed: () => SleepTimerSheet.show(context),
+                      ),
                     IconButton(
                       icon: Icon(
                         player.isPlaying
