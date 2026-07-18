@@ -23,6 +23,8 @@ class Song extends Equatable {
     this.releaseDate,
   });
 
+  String get formattedDuration => _formatMillis(trackTimeMillis);
+
   @override
   List<Object?> get props => [
         trackId,
