@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/home_controller.dart';
+import '../controllers/player_controller.dart';
 import '../controllers/theme_controller.dart';
 import '../widgets/shimmer_song_card.dart';
 import '../widgets/song_card.dart';
@@ -150,10 +151,56 @@ class _HomeScreenState extends State<HomeScreen> {
                       }
 
                       final song = controller.songs[index];
+                      final player = Get.find<PlayerController>();
                       return SongCard(
                         song: song,
                         onTap: () {
+                          player.playQueue(
+                              controller.songs.toList(), index);
                           Get.to(() => SongDetailScreen(song: song));
+                        },
+                        onLongPress: () {
+                          showModalBottomSheet(
+                            context: context,
+                            builder: (_) => SafeArea(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  ListTile(
+                                    leading:
+                                        const Icon(Icons.queue_music),
+                                    title:
+                                        const Text('Add to Queue'),
+                                    onTap: () {
+                                      player.addToQueue(song);
+                                      Get.back();
+                                      Get.snackbar(
+                                        'Queue',
+                                        'Added to queue',
+                                        snackPosition:
+                                            SnackPosition.BOTTOM,
+                                      );
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading:
+                                        const Icon(Icons.playlist_add),
+                                    title: const Text('Play Next'),
+                                    onTap: () {
+                                      player.addNext(song);
+                                      Get.back();
+                                      Get.snackbar(
+                                        'Queue',
+                                        'Will play next',
+                                        snackPosition:
+                                            SnackPosition.BOTTOM,
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
                         },
                       );
                     },

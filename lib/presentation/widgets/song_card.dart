@@ -5,11 +5,13 @@ import '../../domain/entities/song.dart';
 class SongCard extends StatelessWidget {
   final Song song;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   const SongCard({
     super.key,
     required this.song,
     required this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -75,6 +77,7 @@ class SongCard extends StatelessWidget {
         ),
         trailing: const Icon(Icons.chevron_right),
         onTap: onTap,
+        onLongPress: onLongPress,
       ),
     );
   }

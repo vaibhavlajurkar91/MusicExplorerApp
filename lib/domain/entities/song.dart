@@ -23,7 +23,13 @@ class Song extends Equatable {
     this.releaseDate,
   });
 
-  String get formattedDuration => _formatMillis(trackTimeMillis);
+  String get formattedDuration {
+    if (trackTimeMillis == null) return '--:--';
+    final d = Duration(milliseconds: trackTimeMillis!);
+    final mm = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final ss = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$mm:$ss';
+  }
 
   @override
   List<Object?> get props => [

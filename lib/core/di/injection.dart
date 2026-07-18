@@ -6,6 +6,7 @@ import '../../data/repositories/song_repository_impl.dart';
 import '../../domain/repositories/song_repository.dart';
 import '../../presentation/controllers/favorites_controller.dart';
 import '../../presentation/controllers/home_controller.dart';
+import '../../presentation/controllers/player_controller.dart';
 import '../../presentation/controllers/theme_controller.dart';
 
 class DependencyInjection {
@@ -28,6 +29,8 @@ class DependencyInjection {
     );
 
     Get.put(ThemeController());
+
+    Get.put(PlayerController());
 
     Get.put(HomeController(repository: Get.find()));
 
