@@ -46,7 +46,9 @@ dependencies:
   hive_flutter: ^1.1.0
 
   # Audio Player
-  audioplayers: ^5.2.1
+  just_audio: ^0.10.4
+  audio_service: ^0.18.17
+  rxdart: ^0.28.0
 
   # UI
   shimmer: ^3.0.0

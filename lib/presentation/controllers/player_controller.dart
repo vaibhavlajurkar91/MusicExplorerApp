@@ -1,9 +1,9 @@
-import 'package:audioplayers/audioplayers.dart';
 import 'package:get/get.dart';
+import '../../core/audio/music_audio_handler.dart';
 import '../../domain/entities/song.dart';
 
 class PlayerController extends GetxController {
-  final _audioPlayer = AudioPlayer();
+  late final MusicAudioHandler _handler;
 
   final queue = <Song>[].obs;
   final currentIndex = 0.obs;
@@ -19,133 +19,45 @@ class PlayerController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _audioPlayer.onDurationChanged.listen((d) => duration.value = d);
-    _audioPlayer.onPositionChanged.listen((p) => position.value = p);
-    _audioPlayer.onPlayerComplete.listen((_) {
-      if (hasNext) {
-        next();
-      } else {
-        isPlaying.value = false;
-        position.value = Duration.zero;
-      }
+    _handler = Get.find<MusicAudioHandler>();
+
+    _handler.songsStream.listen((songs) => queue.assignAll(songs));
+    _handler.playbackState.listen((state) {
+      isPlaying.value = state.playing;
+      currentIndex.value = state.queueIndex ?? 0;
     });
+    _handler.mediaItem.listen((_) {
+      position.value = Duration.zero;
+      duration.value = Duration.zero;
+    });
+    _handler.positionStream.listen((p) => position.value = p);
+    _handler.durationStream.listen((d) => duration.value = d ?? Duration.zero);
   }
 
-  Future<void> playQueue(List<Song> songs, int startIndex) async {
-    queue.assignAll(songs);
-    currentIndex.value = startIndex;
-    await _playCurrent();
+  Future<void> playQueue(List<Song> songs, int startIndex) =>
+      _handler.setQueue(songs, startIndex);
+
+  Future<void> addToQueue(Song song) => _handler.addToQueueSong(song);
+
+  Future<void> addNext(Song song) => _handler.addNextSong(song);
+
+  Future<void> removeFromQueue(int index) => _handler.removeAt(index);
+
+  Future<void> reorderQueue(int oldIndex, int newIndex) =>
+      _handler.reorder(oldIndex, newIndex);
+
+  Future<void> jumpTo(int index) => _handler.skipToQueueItem(index);
+
+  Future<void> next() => _handler.skipToNext();
+
+  Future<void> previous() => _handler.skipToPrevious();
+
+  Future<void> playPause() {
+    if (currentSong == null) return Future.value();
+    return isPlaying.value ? _handler.pause() : _handler.play();
   }
 
-  Future<void> addToQueue(Song song) async {
-    queue.add(song);
-    if (!isPlaying.value && queue.length == 1) {
-      await _playCurrent();
-    }
-  }
+  Future<void> seekTo(Duration pos) => _handler.seek(pos);
 
-  Future<void> addNext(Song song) async {
-    final insertAt = queue.isEmpty ? 0 : (currentIndex.value + 1).clamp(0, queue.length);
-    queue.insert(insertAt, song);
-    if (queue.length == 1) await _playCurrent();
-  }
-
-  void removeFromQueue(int index) {
-    if (index < 0 || index >= queue.length) return;
-    if (index == currentIndex.value) {
-      if (hasNext) {
-        queue.removeAt(index);
-        _playCurrent();
-      } else if (hasPrev) {
-        currentIndex.value--;
-        queue.removeAt(index);
-      } else {
-        _audioPlayer.stop();
-        isPlaying.value = false;
-        position.value = Duration.zero;
-        duration.value = Duration.zero;
-        queue.clear();
-      }
-    } else {
-      if (index < currentIndex.value) currentIndex.value--;
-      queue.removeAt(index);
-    }
-  }
-
-  void reorderQueue(int oldIndex, int newIndex) {
-    if (oldIndex < newIndex) newIndex--;
-    final song = queue.removeAt(oldIndex);
-    queue.insert(newIndex, song);
-    if (oldIndex == currentIndex.value) {
-      currentIndex.value = newIndex;
-    } else if (oldIndex < currentIndex.value && newIndex >= currentIndex.value) {
-      currentIndex.value--;
-    } else if (oldIndex > currentIndex.value && newIndex <= currentIndex.value) {
-      currentIndex.value++;
-    }
-  }
-
-  Future<void> jumpTo(int index) async {
-    if (index < 0 || index >= queue.length) return;
-    currentIndex.value = index;
-    await _playCurrent();
-  }
-
-  Future<void> next() async {
-    if (!hasNext) return;
-    currentIndex.value++;
-    await _playCurrent();
-  }
-
-  Future<void> previous() async {
-    if (position.value.inSeconds > 3) {
-      await seekTo(Duration.zero);
-      return;
-    }
-    if (!hasPrev) return;
-    currentIndex.value--;
-    await _playCurrent();
-  }
-
-  Future<void> playPause() async {
-    if (currentSong == null) return;
-    if (isPlaying.value) {
-      await _audioPlayer.pause();
-      isPlaying.value = false;
-    } else {
-      await _audioPlayer.resume();
-      isPlaying.value = true;
-    }
-  }
-
-  Future<void> seekTo(Duration pos) async {
-    await _audioPlayer.seek(pos);
-  }
-
-  Future<void> clearQueue() async {
-    await _audioPlayer.stop();
-    isPlaying.value = false;
-    position.value = Duration.zero;
-    duration.value = Duration.zero;
-    queue.clear();
-    currentIndex.value = 0;
-  }
-
-  Future<void> _playCurrent() async {
-    final song = currentSong;
-    if (song == null || (song.previewUrl?.isEmpty ?? true)) {
-      isPlaying.value = false;
-      return;
-    }
-    position.value = Duration.zero;
-    duration.value = Duration.zero;
-    await _audioPlayer.play(UrlSource(song.previewUrl!));
-    isPlaying.value = true;
-  }
-
-  @override
-  void onClose() {
-    _audioPlayer.dispose();
-    super.onClose();
-  }
+  Future<void> clearQueue() => _handler.clearAll();
 }
