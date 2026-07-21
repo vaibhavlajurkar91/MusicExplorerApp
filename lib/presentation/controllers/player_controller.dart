@@ -1,9 +1,17 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
 import '../../core/audio/music_audio_handler.dart';
 import '../../domain/entities/song.dart';
 
 class PlayerController extends GetxController {
   late final MusicAudioHandler _handler;
+
+  Timer? _sleepTimer;
+  final _sleepTimerRemaining = Rxn<Duration>();
+
+  Duration? get sleepTimerRemaining => _sleepTimerRemaining.value;
+  bool get hasSleepTimer => _sleepTimerRemaining.value != null;
 
   final queue = <Song>[].obs;
 
@@ -76,4 +84,41 @@ class PlayerController extends GetxController {
   Future<void> seekTo(Duration pos) => _handler.seek(pos);
 
   Future<void> clearQueue() => _handler.clearAll();
+
+  void setSleepTimer(Duration duration) {
+    _clearSleepTimer();
+    _sleepTimerRemaining.value = duration;
+    _sleepTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      final remaining = _sleepTimerRemaining.value;
+      if (remaining == null) return;
+      if (remaining.inSeconds <= 1) {
+        // Pause through the handler so the notification/lock-screen controls
+        // reflect the stop too — the timer must not bypass audio_service.
+        _handler.pause();
+        _clearSleepTimer();
+        Get.snackbar('Sleep Timer', 'Playback stopped',
+            snackPosition: SnackPosition.BOTTOM);
+      } else {
+        _sleepTimerRemaining.value = remaining - const Duration(seconds: 1);
+      }
+    });
+  }
+
+  void cancelSleepTimer() {
+    _clearSleepTimer();
+    Get.snackbar('Sleep Timer', 'Timer cancelled',
+        snackPosition: SnackPosition.BOTTOM);
+  }
+
+  void _clearSleepTimer() {
+    _sleepTimer?.cancel();
+    _sleepTimer = null;
+    _sleepTimerRemaining.value = null;
+  }
+
+  @override
+  void onClose() {
+    _clearSleepTimer();
+    super.onClose();
+  }
 }

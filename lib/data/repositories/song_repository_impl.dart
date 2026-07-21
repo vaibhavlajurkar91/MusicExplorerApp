@@ -1,7 +1,9 @@
+import '../../domain/entities/playlist.dart';
 import '../../domain/entities/song.dart';
 import '../../domain/repositories/song_repository.dart';
 import '../datasources/local_data_source.dart';
 import '../datasources/remote_data_source.dart';
+import '../models/playlist_model.dart';
 import '../models/song_model.dart';
 
 class SongRepositoryImpl implements SongRepository {
@@ -45,5 +47,52 @@ class SongRepositoryImpl implements SongRepository {
   @override
   Future<bool> isFavorite(int trackId) async {
     return await localDataSource.isFavorite(trackId);
+  }
+
+  @override
+  Future<void> addToRecentlyPlayed(Song song) async {
+    final songModel = SongModel.fromEntity(song);
+    await localDataSource.addToRecentlyPlayed(songModel);
+  }
+
+  @override
+  Future<List<Song>> getRecentlyPlayed() async {
+    return await localDataSource.getRecentlyPlayed();
+  }
+
+  @override
+  Future<List<Playlist>> getPlaylists() async {
+    return await localDataSource.getPlaylists();
+  }
+
+  @override
+  Future<void> savePlaylist(Playlist playlist) async {
+    final model = PlaylistModel.fromEntity(playlist);
+    await localDataSource.savePlaylist(model);
+  }
+
+  @override
+  Future<void> deletePlaylist(String id) async {
+    await localDataSource.deletePlaylist(id);
+  }
+
+  @override
+  Future<List<String>> getSearchHistory() async {
+    return await localDataSource.getSearchHistory();
+  }
+
+  @override
+  Future<void> addToSearchHistory(String query) async {
+    await localDataSource.addToSearchHistory(query);
+  }
+
+  @override
+  Future<void> removeFromSearchHistory(String query) async {
+    await localDataSource.removeFromSearchHistory(query);
+  }
+
+  @override
+  Future<void> clearSearchHistory() async {
+    await localDataSource.clearSearchHistory();
   }
 }

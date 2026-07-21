@@ -5,6 +5,45 @@ part 'song_model.g.dart';
 
 @HiveType(typeId: 0)
 class SongModel extends Song {
+  // State lives on [Song]. These getters exist only to carry the Hive field
+  // indices; redeclaring the fields here would shadow the inherited ones and
+  // make every instance store each value twice (lint: overridden_fields).
+  @override
+  @HiveField(0)
+  int get trackId => super.trackId;
+
+  @override
+  @HiveField(1)
+  String get trackName => super.trackName;
+
+  @override
+  @HiveField(2)
+  String get artistName => super.artistName;
+
+  @override
+  @HiveField(3)
+  String get collectionName => super.collectionName;
+
+  @override
+  @HiveField(4)
+  String get artworkUrl100 => super.artworkUrl100;
+
+  @override
+  @HiveField(5)
+  String? get previewUrl => super.previewUrl;
+
+  @override
+  @HiveField(6)
+  int? get trackTimeMillis => super.trackTimeMillis;
+
+  @override
+  @HiveField(7)
+  String? get primaryGenreName => super.primaryGenreName;
+
+  @override
+  @HiveField(8)
+  DateTime? get releaseDate => super.releaseDate;
+
   const SongModel({
     required super.trackId,
     required super.trackName,

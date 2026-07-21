@@ -1,6 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../domain/entities/song.dart';
+import '../controllers/favorites_controller.dart';
+import 'add_to_playlist_sheet.dart';
 
 class SongCard extends StatelessWidget {
   final Song song;
@@ -75,9 +78,23 @@ class SongCard extends StatelessWidget {
             ),
           ],
         ),
-        trailing: const Icon(Icons.chevron_right),
+        trailing: Obx(() {
+          final favController = Get.find<FavoritesController>();
+          final isFav = favController.isFavorite(song.trackId);
+          return IconButton(
+            icon: Icon(
+              isFav ? Icons.favorite : Icons.favorite_border,
+              color: isFav ? Colors.red : null,
+            ),
+            onPressed: () => favController.toggleFavorite(song),
+          );
+        }),
         onTap: onTap,
-        onLongPress: onLongPress,
+        // Callers that supply their own long-press menu are responsible for
+        // offering "Add to Playlist" themselves; everyone else keeps the
+        // straight-to-playlist shortcut.
+        onLongPress:
+            onLongPress ?? () => AddToPlaylistSheet.show(context, song),
       ),
     );
   }

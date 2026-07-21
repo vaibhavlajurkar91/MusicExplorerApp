@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../domain/entities/song.dart';
 import '../controllers/player_controller.dart';
 import '../controllers/song_detail_controller.dart';
+import '../widgets/sleep_timer_sheet.dart';
 
 class SongDetailScreen extends StatelessWidget {
   final Song song;
@@ -26,6 +27,18 @@ class SongDetailScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Song Details'),
         actions: [
+          Obx(
+            () => IconButton(
+              icon: Icon(
+                player.hasSleepTimer ? Icons.bedtime : Icons.bedtime_outlined,
+                color: player.hasSleepTimer
+                    ? Theme.of(context).colorScheme.primary
+                    : null,
+              ),
+              tooltip: 'Sleep timer',
+              onPressed: () => SleepTimerSheet.show(context),
+            ),
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
             onSelected: (value) {
@@ -131,9 +144,8 @@ class SongDetailScreen extends StatelessWidget {
                     const SizedBox(height: 16),
                     Chip(
                       label: Text(song.primaryGenreName!),
-                      backgroundColor: Theme.of(context)
-                          .primaryColor
-                          .withValues(alpha: 0.1),
+                      backgroundColor:
+                          Theme.of(context).primaryColor.withValues(alpha: 0.1),
                     ),
                   ],
                 ],
