@@ -205,7 +205,9 @@ class _QueueList extends StatelessWidget {
                 final item = player.queue[index];
                 final isCurrent = index == player.currentIndex.value;
                 return ListTile(
-                  key: ValueKey('${item.trackId}_$index'),
+                  // Stable identity minted at insertion time — not derived
+                  // from the index, which changes on every reorder/removal.
+                  key: ValueKey(player.queueUids[index]),
                   selected: isCurrent,
                   selectedTileColor:
                       Theme.of(context).primaryColor.withValues(alpha: 0.08),

@@ -18,26 +18,49 @@ bool get audioPlaybackSupported =>
     defaultTargetPlatform == TargetPlatform.iOS ||
     defaultTargetPlatform == TargetPlatform.macOS;
 
+/// A song plus the identity it keeps for as long as it sits in the queue.
+///
+/// The same [Song] can be queued more than once, and positions shift on every
+/// reorder/removal, so neither the track id nor the list index is a usable
+/// identity. [uid] is minted at insertion time and never changes, which is what
+/// `ReorderableListView` keys and the published [MediaItem] ids are built from.
+@immutable
+class QueueEntry {
+  const QueueEntry(this.uid, this.song);
+
+  final String uid;
+  final Song song;
+}
+
 /// Owns the single [ja.AudioPlayer] instance and mirrors its state into
 /// audio_service's queue/mediaItem/playbackState so the OS lock-screen and
 /// notification stay in sync with in-app playback.
 class MusicAudioHandler extends BaseAudioHandler {
   final ja.AudioPlayer? _player =
       audioPlaybackSupported ? ja.AudioPlayer() : null;
-  final _songsSubject = BehaviorSubject<List<Song>>.seeded(const []);
+  final _queueSubject = BehaviorSubject<List<QueueEntry>>.seeded(const []);
+  final _errorSubject = PublishSubject<String>();
 
-  List<Song> _songs = const [];
+  List<QueueEntry> _entries = const [];
   int _currentIndex = 0;
+  int _nextUid = 0;
 
-  Stream<List<Song>> get songsStream => _songsSubject.stream;
+  Stream<List<QueueEntry>> get queueStream => _queueSubject.stream;
+
+  /// Playback failures the UI should surface (dead/expired preview URLs).
+  Stream<String> get errorStream => _errorSubject.stream;
   Stream<Duration> get positionStream =>
       _player?.positionStream ?? const Stream<Duration>.empty();
   Stream<Duration?> get durationStream =>
       _player?.durationStream ?? const Stream<Duration?>.empty();
 
-  Song? get currentSong => _songs.isNotEmpty ? _songs[_currentIndex] : null;
-  bool get hasNext => _currentIndex < _songs.length - 1;
+  QueueEntry? get _currentEntry =>
+      _entries.isNotEmpty ? _entries[_currentIndex] : null;
+  Song? get currentSong => _currentEntry?.song;
+  bool get hasNext => _currentIndex < _entries.length - 1;
   bool get hasPrev => _currentIndex > 0;
+
+  QueueEntry _wrap(Song song) => QueueEntry('q${_nextUid++}', song);
 
   MusicAudioHandler() {
     final player = _player;
@@ -56,16 +79,16 @@ class MusicAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> setQueue(List<Song> songs, int startIndex) async {
-    _songs = List.of(songs);
+    _entries = [for (final song in songs) _wrap(song)];
     _currentIndex = startIndex;
     _publishQueue();
     await _playCurrent();
   }
 
   Future<void> addToQueueSong(Song song) async {
-    _songs = List.of(_songs)..add(song);
+    _entries = List.of(_entries)..add(_wrap(song));
     _publishQueue();
-    if (_songs.length == 1) {
+    if (_entries.length == 1) {
       _currentIndex = 0;
       await _playCurrent();
     }
@@ -73,45 +96,49 @@ class MusicAudioHandler extends BaseAudioHandler {
 
   Future<void> addNextSong(Song song) async {
     final insertAt =
-        _songs.isEmpty ? 0 : (_currentIndex + 1).clamp(0, _songs.length);
-    _songs = List.of(_songs)..insert(insertAt, song);
+        _entries.isEmpty ? 0 : (_currentIndex + 1).clamp(0, _entries.length);
+    _entries = List.of(_entries)..insert(insertAt, _wrap(song));
     _publishQueue();
-    if (_songs.length == 1) {
+    if (_entries.length == 1) {
       _currentIndex = 0;
       await _playCurrent();
     }
   }
 
   Future<void> removeAt(int index) async {
-    if (index < 0 || index >= _songs.length) return;
+    if (index < 0 || index >= _entries.length) return;
     if (index == _currentIndex) {
       if (hasNext) {
-        _songs = List.of(_songs)..removeAt(index);
+        _entries = List.of(_entries)..removeAt(index);
         _publishQueue();
         await _playCurrent();
       } else if (hasPrev) {
+        // Removing the currently-playing *last* item: the previous track
+        // becomes current, so the player has to be re-pointed at it — without
+        // this the removed song keeps playing over the new MediaItem.
         _currentIndex--;
-        _songs = List.of(_songs)..removeAt(index);
+        _entries = List.of(_entries)..removeAt(index);
         _publishQueue();
+        await _playCurrent();
       } else {
-        _songs = const [];
+        _entries = const [];
         _currentIndex = 0;
         _publishQueue();
         await stop();
       }
     } else {
       if (index < _currentIndex) _currentIndex--;
-      _songs = List.of(_songs)..removeAt(index);
+      _entries = List.of(_entries)..removeAt(index);
       _publishQueue();
     }
   }
 
   Future<void> reorder(int oldIndex, int newIndex) async {
     if (oldIndex < newIndex) newIndex--;
-    final list = List.of(_songs);
-    final song = list.removeAt(oldIndex);
-    list.insert(newIndex, song);
-    _songs = list;
+    final list = List.of(_entries);
+    final entry = list.removeAt(oldIndex);
+    list.insert(newIndex, entry);
+    _entries = list;
     if (oldIndex == _currentIndex) {
       _currentIndex = newIndex;
     } else if (oldIndex < _currentIndex && newIndex >= _currentIndex) {
@@ -123,7 +150,7 @@ class MusicAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> clearAll() async {
-    _songs = const [];
+    _entries = const [];
     _currentIndex = 0;
     _publishQueue();
     await stop();
@@ -169,32 +196,39 @@ class MusicAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> skipToQueueItem(int index) async {
-    if (index < 0 || index >= _songs.length) return;
+    if (index < 0 || index >= _entries.length) return;
     _currentIndex = index;
     await _playCurrent();
   }
 
   Future<void> _playCurrent() async {
-    final song = currentSong;
-    mediaItem.add(song == null ? null : _toMediaItem(song, _currentIndex));
+    final entry = _currentEntry;
+    mediaItem.add(entry == null ? null : _toMediaItem(entry));
     final player = _player;
     if (player == null) return;
+    final song = entry?.song;
     if (song == null || (song.previewUrl?.isEmpty ?? true)) {
       await player.stop();
       return;
     }
-    await player.setUrl(song.previewUrl!);
-    // Deliberately not awaited: play() completes only when playback ends.
-    unawaited(player.play());
+    // Callers are fire-and-forget (taps, the completed-track listener), so an
+    // escaping rejection would land as an unhandled async error. iTunes preview
+    // URLs do 404/expire, so failure here is expected, not exceptional.
+    try {
+      await player.setUrl(song.previewUrl!);
+      // Deliberately not awaited: play() completes only when playback ends.
+      unawaited(player.play());
+    } catch (_) {
+      await player.stop();
+      _errorSubject.add('Could not play "${song.trackName}"');
+    }
   }
 
   void _publishQueue() {
-    final items = [
-      for (var i = 0; i < _songs.length; i++) _toMediaItem(_songs[i], i),
-    ];
-    queue.add(items);
-    _songsSubject.add(_songs);
-    mediaItem.add(currentSong == null ? null : _toMediaItem(currentSong!, _currentIndex));
+    queue.add([for (final entry in _entries) _toMediaItem(entry)]);
+    _queueSubject.add(_entries);
+    final current = _currentEntry;
+    mediaItem.add(current == null ? null : _toMediaItem(current));
     _broadcastState(
       _player?.playerState ??
           ja.PlayerState(false, ja.ProcessingState.idle),
@@ -227,9 +261,13 @@ class MusicAudioHandler extends BaseAudioHandler {
     ));
   }
 
-  MediaItem _toMediaItem(Song song, int index) {
+  /// The id is the entry's stable uid, so a queue mutation that leaves the
+  /// current track alone republishes an identical id and listeners can tell a
+  /// real track change from a reorder/insert/removal.
+  MediaItem _toMediaItem(QueueEntry entry) {
+    final song = entry.song;
     return MediaItem(
-      id: '${song.trackId}_$index',
+      id: entry.uid,
       title: song.trackName,
       artist: song.artistName,
       album: song.collectionName,
