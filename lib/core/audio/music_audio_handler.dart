@@ -80,7 +80,11 @@ class MusicAudioHandler extends BaseAudioHandler {
 
   Future<void> setQueue(List<Song> songs, int startIndex) async {
     _entries = [for (final song in songs) _wrap(song)];
-    _currentIndex = startIndex;
+    // Callers pass an index captured at tap time from a list that may have been
+    // refiltered since (search results refreshing under a builder index), so an
+    // out-of-range value here would make `_currentEntry` throw RangeError from
+    // inside a fire-and-forget async call.
+    _currentIndex = songs.isEmpty ? 0 : startIndex.clamp(0, songs.length - 1);
     _publishQueue();
     await _playCurrent();
   }
@@ -204,6 +208,11 @@ class MusicAudioHandler extends BaseAudioHandler {
   Future<void> _playCurrent() async {
     final entry = _currentEntry;
     mediaItem.add(entry == null ? null : _toMediaItem(entry));
+    // `playbackState` is the only channel PlayerController reads the current
+    // index from, and on platforms where `_player` is null nothing else ever
+    // pushes to it — so publish here rather than relying on
+    // `playerStateStream` firing as a side effect of setUrl/stop.
+    _publishCurrentState();
     final player = _player;
     if (player == null) return;
     final song = entry?.song;
@@ -229,11 +238,14 @@ class MusicAudioHandler extends BaseAudioHandler {
     _queueSubject.add(_entries);
     final current = _currentEntry;
     mediaItem.add(current == null ? null : _toMediaItem(current));
-    _broadcastState(
-      _player?.playerState ??
-          ja.PlayerState(false, ja.ProcessingState.idle),
-    );
+    _publishCurrentState();
   }
+
+  /// Pushes the player's current state (or an idle placeholder where there is
+  /// no player) onto `playbackState`.
+  void _publishCurrentState() => _broadcastState(
+        _player?.playerState ?? ja.PlayerState(false, ja.ProcessingState.idle),
+      );
 
   void _broadcastState(ja.PlayerState playerState) {
     final playing = playerState.playing;
