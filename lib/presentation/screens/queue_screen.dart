@@ -112,14 +112,21 @@ class _NowPlayingSection extends StatelessWidget {
                       overlayShape:
                           const RoundSliderOverlayShape(overlayRadius: 12),
                     ),
-                    child: Slider(
-                      value: player.position.value.inSeconds.toDouble(),
-                      max: player.duration.value.inSeconds.toDouble() > 0
+                    child: Builder(builder: (context) {
+                      // During a track transition duration resets before the
+                      // new position arrives, so clamp to keep value <= max.
+                      final max = player.duration.value.inSeconds > 0
                           ? player.duration.value.inSeconds.toDouble()
-                          : 1,
-                      onChanged: (v) =>
-                          player.seekTo(Duration(seconds: v.toInt())),
-                    ),
+                          : 1.0;
+                      return Slider(
+                        value: player.position.value.inSeconds
+                            .toDouble()
+                            .clamp(0.0, max),
+                        max: max,
+                        onChanged: (v) =>
+                            player.seekTo(Duration(seconds: v.toInt())),
+                      );
+                    }),
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),

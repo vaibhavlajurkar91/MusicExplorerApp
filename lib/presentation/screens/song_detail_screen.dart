@@ -154,14 +154,24 @@ class SongDetailScreen extends StatelessWidget {
                           children: [
                             Text(_fmt(player.position.value)),
                             Expanded(
-                              child: Slider(
-                                value: player.position.value.inSeconds.toDouble(),
-                                max: player.duration.value.inSeconds.toDouble() > 0
-                                    ? player.duration.value.inSeconds.toDouble()
-                                    : 1,
-                                onChanged: (v) =>
-                                    player.seekTo(Duration(seconds: v.toInt())),
-                              ),
+                              child: Builder(builder: (context) {
+                                // Duration resets before the new position
+                                // during a track change; clamp so the Slider
+                                // never sees value > max.
+                                final max =
+                                    player.duration.value.inSeconds > 0
+                                        ? player.duration.value.inSeconds
+                                            .toDouble()
+                                        : 1.0;
+                                return Slider(
+                                  value: player.position.value.inSeconds
+                                      .toDouble()
+                                      .clamp(0.0, max),
+                                  max: max,
+                                  onChanged: (v) => player
+                                      .seekTo(Duration(seconds: v.toInt())),
+                                );
+                              }),
                             ),
                             Text(_fmt(player.duration.value)),
                           ],

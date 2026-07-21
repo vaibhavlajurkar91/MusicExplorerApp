@@ -16,15 +16,21 @@ void main() async {
 
   Hive.registerAdapter(SongModelAdapter());
 
-  final audioHandler = await AudioService.init(
-    builder: () => MusicAudioHandler(),
-    config: const AudioServiceConfig(
-      androidNotificationChannelId: 'com.example.musicexplorerapp.audio',
-      androidNotificationChannelName: 'Playback',
-      androidNotificationOngoing: true,
-      androidStopForegroundOnPause: true,
-    ),
-  );
+  // AudioService.init talks to platform channels that only exist where
+  // audio_service has an implementation. On Windows/Linux it would throw a
+  // MissingPluginException and break startup, so register a plain handler
+  // there instead.
+  final audioHandler = audioPlaybackSupported
+      ? await AudioService.init(
+          builder: () => MusicAudioHandler(),
+          config: const AudioServiceConfig(
+            androidNotificationChannelId: 'com.example.musicexplorerapp.audio',
+            androidNotificationChannelName: 'Playback',
+            androidNotificationOngoing: true,
+            androidStopForegroundOnPause: true,
+          ),
+        )
+      : MusicAudioHandler();
   Get.put<MusicAudioHandler>(audioHandler);
 
   await DependencyInjection.init();
