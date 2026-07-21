@@ -23,6 +23,16 @@ class PlayerController extends GetxController {
   final position = Duration.zero.obs;
   final duration = Duration.zero.obs;
 
+  /// False where no `just_audio` backend ships (Windows/Linux). The queue and
+  /// the rest of the app still work there, but every transport call is a no-op,
+  /// so the UI must disable/annotate its controls instead of showing live-
+  /// looking buttons that do nothing.
+  bool get playbackSupported => audioPlaybackSupported;
+
+  /// Message shown next to the disabled controls on those platforms.
+  static const unsupportedPlatformMessage =
+      'Audio playback is not available on this platform';
+
   Song? get currentSong =>
       queue.isNotEmpty ? queue[currentIndex.value] : null;
   bool get hasNext => currentIndex.value < queue.length - 1;

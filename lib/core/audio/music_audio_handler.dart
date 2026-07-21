@@ -45,6 +45,12 @@ class MusicAudioHandler extends BaseAudioHandler {
   int _currentIndex = 0;
   int _nextUid = 0;
 
+  /// Bumped on every [_playCurrent] entry. Callers are fire-and-forget, so two
+  /// loads can overlap (double-tapped skip, tapping a song mid-load); the token
+  /// lets a stale invocation bail out instead of stopping the track the user
+  /// actually chose.
+  int _playToken = 0;
+
   Stream<List<QueueEntry>> get queueStream => _queueSubject.stream;
 
   /// Playback failures the UI should surface (dead/expired preview URLs).
@@ -206,6 +212,7 @@ class MusicAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> _playCurrent() async {
+    final token = ++_playToken;
     final entry = _currentEntry;
     mediaItem.add(entry == null ? null : _toMediaItem(entry));
     // `playbackState` is the only channel PlayerController reads the current
@@ -225,9 +232,15 @@ class MusicAudioHandler extends BaseAudioHandler {
     // URLs do 404/expire, so failure here is expected, not exceptional.
     try {
       await player.setUrl(song.previewUrl!);
+      // A newer _playCurrent() started while this one was loading: it owns the
+      // player now, so don't start this (already superseded) source.
+      if (token != _playToken) return;
       // Deliberately not awaited: play() completes only when playback ends.
       unawaited(player.play());
     } catch (_) {
+      // Same guard on the failure path — stopping/erroring here would kill the
+      // track the user actually selected and show a snackbar naming the old one.
+      if (token != _playToken) return;
       await player.stop();
       _errorSubject.add('Could not play "${song.trackName}"');
     }

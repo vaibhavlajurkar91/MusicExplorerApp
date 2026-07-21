@@ -152,7 +152,21 @@ class SongDetailScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 32),
-            if (song.previewUrl != null) ...[
+            if (song.previewUrl != null && !player.playbackSupported) ...[
+              // No just_audio backend on Windows/Linux: show why instead of a
+              // play button that would silently do nothing.
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  PlayerController.unsupportedPlatformMessage,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: Colors.grey[600]),
+                ),
+              ),
+            ] else if (song.previewUrl != null) ...[
               Obx(() {
                 final isCurrent =
                     player.currentSong?.trackId == song.trackId;

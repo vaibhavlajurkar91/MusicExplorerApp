@@ -16,6 +16,9 @@ class MiniPlayer extends StatelessWidget {
       if (player.queue.isEmpty) return const SizedBox.shrink();
 
       final song = player.currentSong!;
+      // No playback backend on this platform: keep the queue visible but make
+      // it obvious the transport controls can't do anything.
+      final canPlay = player.playbackSupported;
       return GestureDetector(
         onTap: () => Get.to(() => const QueueScreen()),
         child: Container(
@@ -70,7 +73,9 @@ class MiniPlayer extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      song.artistName,
+                      canPlay
+                          ? song.artistName
+                          : PlayerController.unsupportedPlatformMessage,
                       style: TextStyle(color: Colors.grey[600], fontSize: 12),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -87,15 +92,16 @@ class MiniPlayer extends StatelessWidget {
                 ),
               IconButton(
                 icon: const Icon(Icons.skip_previous),
-                onPressed: player.hasPrev ? player.previous : null,
+                onPressed:
+                    canPlay && player.hasPrev ? player.previous : null,
               ),
               IconButton(
                 icon: Icon(player.isPlaying.value ? Icons.pause : Icons.play_arrow),
-                onPressed: player.playPause,
+                onPressed: canPlay ? player.playPause : null,
               ),
               IconButton(
                 icon: const Icon(Icons.skip_next),
-                onPressed: player.hasNext ? player.next : null,
+                onPressed: canPlay && player.hasNext ? player.next : null,
               ),
               const SizedBox(width: 4),
             ],

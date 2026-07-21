@@ -57,6 +57,9 @@ class _NowPlayingSection extends StatelessWidget {
 
     return Obx(() {
       final song = player.currentSong!;
+      // Windows/Linux have no playback backend — the seek bar and transport
+      // buttons would be inert, so disable them and say why.
+      final canPlay = player.playbackSupported;
       return Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
         child: Row(
@@ -99,7 +102,9 @@ class _NowPlayingSection extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    song.artistName,
+                    canPlay
+                        ? song.artistName
+                        : PlayerController.unsupportedPlatformMessage,
                     style: TextStyle(color: Colors.grey[600], fontSize: 13),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -123,8 +128,10 @@ class _NowPlayingSection extends StatelessWidget {
                             .toDouble()
                             .clamp(0.0, max),
                         max: max,
-                        onChanged: (v) =>
-                            player.seekTo(Duration(seconds: v.toInt())),
+                        onChanged: canPlay
+                            ? (v) =>
+                                player.seekTo(Duration(seconds: v.toInt()))
+                            : null,
                       );
                     }),
                   ),
@@ -148,7 +155,7 @@ class _NowPlayingSection extends StatelessWidget {
               children: [
                 IconButton(
                   icon: const Icon(Icons.skip_previous),
-                  onPressed: player.hasPrev ? player.previous : null,
+                  onPressed: canPlay && player.hasPrev ? player.previous : null,
                 ),
                 IconButton(
                   padding: EdgeInsets.zero,
@@ -157,13 +164,15 @@ class _NowPlayingSection extends StatelessWidget {
                         ? Icons.pause_circle_filled
                         : Icons.play_circle_filled,
                     size: 40,
-                    color: Theme.of(context).primaryColor,
+                    color: canPlay
+                        ? Theme.of(context).primaryColor
+                        : Theme.of(context).disabledColor,
                   ),
-                  onPressed: player.playPause,
+                  onPressed: canPlay ? player.playPause : null,
                 ),
                 IconButton(
                   icon: const Icon(Icons.skip_next),
-                  onPressed: player.hasNext ? player.next : null,
+                  onPressed: canPlay && player.hasNext ? player.next : null,
                 ),
               ],
             ),
@@ -184,6 +193,11 @@ class _QueueList extends StatelessWidget {
     final player = Get.find<PlayerController>();
 
     return Obx(() {
+      // Read inside the Obx builder itself: itemBuilder runs during the
+      // sliver's lazy layout, outside the observer scope, so reading
+      // currentIndex there would never register a dependency and the
+      // now-playing marker would stay on the previous row after a track change.
+      final currentIndex = player.currentIndex.value;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -203,7 +217,7 @@ class _QueueList extends StatelessWidget {
               onReorder: player.reorderQueue,
               itemBuilder: (context, index) {
                 final item = player.queue[index];
-                final isCurrent = index == player.currentIndex.value;
+                final isCurrent = index == currentIndex;
                 return ListTile(
                   // Stable identity minted at insertion time — not derived
                   // from the index, which changes on every reorder/removal.
