@@ -5,63 +5,56 @@ part 'song_model.g.dart';
 
 @HiveType(typeId: 0)
 class SongModel extends Song {
+  // State lives on [Song]. These getters exist only to carry the Hive field
+  // indices; redeclaring the fields here would shadow the inherited ones and
+  // make every instance store each value twice (lint: overridden_fields).
   @override
   @HiveField(0)
-  final int trackId;
+  int get trackId => super.trackId;
 
   @override
   @HiveField(1)
-  final String trackName;
+  String get trackName => super.trackName;
 
   @override
   @HiveField(2)
-  final String artistName;
+  String get artistName => super.artistName;
 
   @override
   @HiveField(3)
-  final String collectionName;
+  String get collectionName => super.collectionName;
 
   @override
   @HiveField(4)
-  final String artworkUrl100;
+  String get artworkUrl100 => super.artworkUrl100;
 
   @override
   @HiveField(5)
-  final String? previewUrl;
+  String? get previewUrl => super.previewUrl;
 
   @override
   @HiveField(6)
-  final int? trackTimeMillis;
+  int? get trackTimeMillis => super.trackTimeMillis;
 
   @override
   @HiveField(7)
-  final String? primaryGenreName;
+  String? get primaryGenreName => super.primaryGenreName;
 
   @override
   @HiveField(8)
-  final DateTime? releaseDate;
+  DateTime? get releaseDate => super.releaseDate;
 
   const SongModel({
-    required this.trackId,
-    required this.trackName,
-    required this.artistName,
-    required this.collectionName,
-    required this.artworkUrl100,
-    this.previewUrl,
-    this.trackTimeMillis,
-    this.primaryGenreName,
-    this.releaseDate,
-  }) : super(
-          trackId: trackId,
-          trackName: trackName,
-          artistName: artistName,
-          collectionName: collectionName,
-          artworkUrl100: artworkUrl100,
-          previewUrl: previewUrl,
-          trackTimeMillis: trackTimeMillis,
-          primaryGenreName: primaryGenreName,
-          releaseDate: releaseDate,
-        );
+    required super.trackId,
+    required super.trackName,
+    required super.artistName,
+    required super.collectionName,
+    required super.artworkUrl100,
+    super.previewUrl,
+    super.trackTimeMillis,
+    super.primaryGenreName,
+    super.releaseDate,
+  });
 
   factory SongModel.fromJson(Map<String, dynamic> json) {
     return SongModel(
