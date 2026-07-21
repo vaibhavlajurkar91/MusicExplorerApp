@@ -33,7 +33,8 @@ class PlaylistController extends GetxController {
     }
   }
 
-  Future<void> createPlaylist(String name) async {
+  /// Returns the created playlist, or null if it could not be saved.
+  Future<Playlist?> createPlaylist(String name) async {
     final playlist = Playlist(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       name: name,
@@ -45,9 +46,11 @@ class PlaylistController extends GetxController {
       _playlists.add(playlist);
       Get.snackbar('Created', 'Playlist "$name" created',
           snackPosition: SnackPosition.BOTTOM);
+      return playlist;
     } catch (_) {
       Get.snackbar('Error', 'Failed to create playlist',
           snackPosition: SnackPosition.BOTTOM);
+      return null;
     }
   }
 

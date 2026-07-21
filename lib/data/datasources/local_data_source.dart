@@ -11,6 +11,7 @@ class LocalDataSource {
   static const String _historyKey = 'queries';
   static const int _maxRecentlyPlayed = 20;
   static const int _maxHistory = 10;
+  static const int _recentKeyPadding = 20;
 
   Future<Box<SongModel>> _getFavoritesBox() async {
     return await Hive.openBox<SongModel>(favoritesBoxName);
@@ -45,20 +46,44 @@ class LocalDataSource {
     return await Hive.openBox<SongModel>(recentlyPlayedBoxName);
   }
 
+  // Hive keeps keys sorted lexicographically rather than by insertion order, so
+  // recency has to live in the key itself: a zero-padded microsecond timestamp
+  // sorts oldest-first no matter when entries were written.
+  String _recentKey(int microseconds) =>
+      microseconds.toString().padLeft(_recentKeyPadding, '0');
+
+  List<String> _recentKeysOldestFirst(Box<SongModel> box) =>
+      box.keys.cast<String>().toList()..sort();
+
   Future<void> addToRecentlyPlayed(SongModel song) async {
     final box = await _getRecentlyPlayedBox();
-    final key = song.trackId.toString();
-    // Delete first so re-insertion places it at the end (most recent)
-    await box.delete(key);
-    await box.put(key, song);
-    if (box.length > _maxRecentlyPlayed) {
-      await box.delete(box.keys.first);
+
+    // Drop any earlier play of this song so it moves to the most recent slot
+    final previous = box.keys
+        .cast<String>()
+        .where((key) => box.get(key)?.trackId == song.trackId)
+        .toList();
+    if (previous.isNotEmpty) await box.deleteAll(previous);
+
+    var stamp = DateTime.now().microsecondsSinceEpoch;
+    while (box.containsKey(_recentKey(stamp))) {
+      stamp++;
+    }
+    await box.put(_recentKey(stamp), song);
+
+    final keys = _recentKeysOldestFirst(box);
+    if (keys.length > _maxRecentlyPlayed) {
+      await box.deleteAll(keys.take(keys.length - _maxRecentlyPlayed));
     }
   }
 
   Future<List<SongModel>> getRecentlyPlayed() async {
     final box = await _getRecentlyPlayedBox();
-    return box.values.toList().reversed.toList();
+    return _recentKeysOldestFirst(box)
+        .reversed
+        .map(box.get)
+        .whereType<SongModel>()
+        .toList();
   }
 
   Future<Box<String>> _getPlaylistsBox() async {

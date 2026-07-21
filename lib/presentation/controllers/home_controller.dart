@@ -68,8 +68,8 @@ class HomeController extends GetxController {
       if (!fromGenre) {
         _selectedGenre.value = null;
         await repository.addToSearchHistory(query);
-        _searchHistory.remove(query);
-        _searchHistory.insert(0, query);
+        // Re-read so the panel reflects the stored (capped, deduped) history
+        _searchHistory.value = await repository.getSearchHistory();
       }
     }
 
