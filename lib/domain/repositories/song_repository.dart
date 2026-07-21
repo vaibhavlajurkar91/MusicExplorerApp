@@ -1,3 +1,4 @@
+import '../entities/playlist.dart';
 import '../entities/song.dart';
 
 abstract class SongRepository {
@@ -6,4 +7,13 @@ abstract class SongRepository {
   Future<void> removeFromFavorites(int trackId);
   Future<List<Song>> getFavorites();
   Future<bool> isFavorite(int trackId);
+  Future<void> addToRecentlyPlayed(Song song);
+  Future<List<Song>> getRecentlyPlayed();
+  Future<List<Playlist>> getPlaylists();
+  Future<void> savePlaylist(Playlist playlist);
+  Future<void> deletePlaylist(String id);
+  Future<List<String>> getSearchHistory();
+  Future<void> addToSearchHistory(String query);
+  Future<void> removeFromSearchHistory(String query);
+  Future<void> clearSearchHistory();
 }
