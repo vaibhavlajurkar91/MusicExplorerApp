@@ -2,6 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../domain/entities/playlist.dart';
+import '../../domain/entities/song.dart';
+import '../controllers/player_controller.dart';
 import '../controllers/playlist_controller.dart';
 import '../controllers/recently_played_controller.dart';
 import 'song_detail_screen.dart';
@@ -10,6 +12,15 @@ class PlaylistDetailScreen extends StatelessWidget {
   final Playlist playlist;
 
   const PlaylistDetailScreen({super.key, required this.playlist});
+
+  /// Plays the whole playlist starting at [index] so skip-next walks the rest
+  /// of it, rather than queueing the tapped song on its own.
+  void _openSong(List<Song> songs, int index) {
+    final song = songs[index];
+    Get.find<RecentlyPlayedController>().addSong(song);
+    Get.find<PlayerController>().playQueue(songs.toList(), index);
+    Get.to(() => SongDetailScreen(song: song));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -101,15 +112,9 @@ class PlaylistDetailScreen extends StatelessWidget {
                       ),
                       trailing: IconButton(
                         icon: const Icon(Icons.play_circle_outline),
-                        onPressed: () {
-                          Get.find<RecentlyPlayedController>().addSong(song);
-                          Get.to(() => SongDetailScreen(song: song));
-                        },
+                        onPressed: () => _openSong(current.songs, index),
                       ),
-                      onTap: () {
-                        Get.find<RecentlyPlayedController>().addSong(song);
-                        Get.to(() => SongDetailScreen(song: song));
-                      },
+                      onTap: () => _openSong(current.songs, index),
                     ),
                   );
                 },

@@ -1,9 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../domain/entities/song.dart';
 import '../controllers/home_controller.dart';
+import '../controllers/player_controller.dart';
 import '../controllers/recently_played_controller.dart';
 import '../controllers/theme_controller.dart';
+import '../widgets/add_to_playlist_sheet.dart';
 import '../widgets/shimmer_song_card.dart';
 import '../widgets/song_card.dart';
 import 'song_detail_screen.dart';
@@ -48,8 +51,13 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _openSong(song) {
+  /// Records the song in Recently Played, hands the surrounding list to the
+  /// player as the new queue, then opens the detail view. Callers with no
+  /// surrounding list (the Recently Played strip) get a single-song queue.
+  void _openSong(Song song, {List<Song>? queue, int index = 0}) {
     Get.find<RecentlyPlayedController>().addSong(song);
+    Get.find<PlayerController>()
+        .playQueue(queue ?? [song], queue == null ? 0 : index);
     Get.to(() => SongDetailScreen(song: song));
   }
 
@@ -319,9 +327,68 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                       }
                       final song = controller.songs[index];
+                      final player = Get.find<PlayerController>();
                       return SongCard(
                         song: song,
-                        onTap: () => _openSong(song),
+                        onTap: () => _openSong(
+                          song,
+                          queue: controller.songs.toList(),
+                          index: index,
+                        ),
+                        onLongPress: () {
+                          showModalBottomSheet(
+                            context: context,
+                            builder: (_) => SafeArea(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  ListTile(
+                                    leading:
+                                        const Icon(Icons.queue_music),
+                                    title:
+                                        const Text('Add to Queue'),
+                                    onTap: () {
+                                      player.addToQueue(song);
+                                      Get.back();
+                                      Get.snackbar(
+                                        'Queue',
+                                        'Added to queue',
+                                        snackPosition:
+                                            SnackPosition.BOTTOM,
+                                      );
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading:
+                                        const Icon(Icons.playlist_add),
+                                    title: const Text('Play Next'),
+                                    onTap: () {
+                                      player.addNext(song);
+                                      Get.back();
+                                      Get.snackbar(
+                                        'Queue',
+                                        'Will play next',
+                                        snackPosition:
+                                            SnackPosition.BOTTOM,
+                                      );
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading: const Icon(
+                                        Icons.playlist_add_check),
+                                    title:
+                                        const Text('Add to Playlist'),
+                                    onTap: () {
+                                      Get.back();
+                                      AddToPlaylistSheet.show(
+                                          context, song);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
                       );
                     },
                   ),
