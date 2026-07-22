@@ -213,36 +213,56 @@ class MusicAudioHandler extends BaseAudioHandler {
 
   Future<void> _playCurrent() async {
     final token = ++_playToken;
-    final entry = _currentEntry;
-    mediaItem.add(entry == null ? null : _toMediaItem(entry));
-    // `playbackState` is the only channel PlayerController reads the current
-    // index from, and on platforms where `_player` is null nothing else ever
-    // pushes to it — so publish here rather than relying on
-    // `playerStateStream` firing as a side effect of setUrl/stop.
-    _publishCurrentState();
-    final player = _player;
-    if (player == null) return;
-    final song = entry?.song;
-    if (song == null || (song.previewUrl?.isEmpty ?? true)) {
-      await player.stop();
+    // Queues are built from whole lists, which iTunes may not have a preview
+    // for every entry of, so an unplayable song is expected rather than
+    // exceptional. Walking past those keeps auto-advance alive instead of
+    // dying on the first one; each skip moves `_currentIndex` forward, so the
+    // loop terminates at the end of the queue at worst.
+    var reportedSkip = false;
+    while (true) {
+      final entry = _currentEntry;
+      mediaItem.add(entry == null ? null : _toMediaItem(entry));
+      // `playbackState` is the only channel PlayerController reads the current
+      // index from, and on platforms where `_player` is null nothing else ever
+      // pushes to it — so publish here rather than relying on
+      // `playerStateStream` firing as a side effect of setUrl/stop.
+      _publishCurrentState();
+      final player = _player;
+      if (player == null) return;
+      final song = entry?.song;
+      if (song == null || (song.previewUrl?.isEmpty ?? true)) {
+        // Only the first skip of a run is surfaced: a queue with a long
+        // preview-less stretch would otherwise fire a snackbar per song.
+        if (song != null && !reportedSkip) {
+          _errorSubject.add('No preview available for "${song.trackName}"');
+          reportedSkip = true;
+        }
+        if (hasNext) {
+          _currentIndex++;
+          continue;
+        }
+        await player.stop();
+        return;
+      }
+      // Callers are fire-and-forget (taps, the completed-track listener), so an
+      // escaping rejection would land as an unhandled async error. iTunes
+      // preview URLs do 404/expire, so failure here is expected too.
+      try {
+        await player.setUrl(song.previewUrl!);
+        // A newer _playCurrent() started while this one was loading: it owns
+        // the player now, so don't start this (already superseded) source.
+        if (token != _playToken) return;
+        // Deliberately not awaited: play() completes only when playback ends.
+        unawaited(player.play());
+      } catch (_) {
+        // Same guard on the failure path — stopping/erroring here would kill
+        // the track the user actually selected and show a snackbar naming the
+        // old one.
+        if (token != _playToken) return;
+        await player.stop();
+        _errorSubject.add('Could not play "${song.trackName}"');
+      }
       return;
-    }
-    // Callers are fire-and-forget (taps, the completed-track listener), so an
-    // escaping rejection would land as an unhandled async error. iTunes preview
-    // URLs do 404/expire, so failure here is expected, not exceptional.
-    try {
-      await player.setUrl(song.previewUrl!);
-      // A newer _playCurrent() started while this one was loading: it owns the
-      // player now, so don't start this (already superseded) source.
-      if (token != _playToken) return;
-      // Deliberately not awaited: play() completes only when playback ends.
-      unawaited(player.play());
-    } catch (_) {
-      // Same guard on the failure path — stopping/erroring here would kill the
-      // track the user actually selected and show a snackbar naming the old one.
-      if (token != _playToken) return;
-      await player.stop();
-      _errorSubject.add('Could not play "${song.trackName}"');
     }
   }
 

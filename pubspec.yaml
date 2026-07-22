@@ -46,6 +46,14 @@ dependencies:
   hive_flutter: ^1.1.0
 
   # Audio Player
+  # Deliberate trade-off: this stack replaces `audioplayers` to get background
+  # playback plus OS lock-screen/notification controls, which `audioplayers`
+  # cannot provide. The cost is desktop — `just_audio`/`audio_service` ship no
+  # Windows/Linux implementation, so playback there is gated off by
+  # `audioPlaybackSupported` (lib/core/audio/music_audio_handler.dart) and the
+  # transport controls render disabled. Accepted knowingly: the app targets
+  # Android/iOS/web. `audio_service` is still pre-1.0 (0.18.x); it and
+  # `just_audio` are MIT, `rxdart` (promoted from transitive here) is Apache-2.0.
   just_audio: ^0.10.4
   audio_service: ^0.18.17
   rxdart: ^0.28.0
