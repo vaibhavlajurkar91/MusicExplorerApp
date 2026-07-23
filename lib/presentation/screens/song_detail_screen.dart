@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../domain/entities/song.dart';
 import '../controllers/player_controller.dart';
 import '../controllers/song_detail_controller.dart';
@@ -28,6 +29,19 @@ class SongDetailScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Song Details'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.share),
+            tooltip: 'Share',
+            onPressed: () {
+              final buffer = StringBuffer(
+                'Check out "${song.trackName}" by ${song.artistName}',
+              );
+              if (song.previewUrl != null) {
+                buffer.write('\n${song.previewUrl}');
+              }
+              Share.share(buffer.toString(), subject: song.trackName);
+            },
+          ),
           Obx(() {
             final player = Get.find<PlayerController>();
             return IconButton(
