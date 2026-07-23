@@ -1,3 +1,6 @@
+// Fields are intentionally redeclared so Hive's @HiveField annotations can be
+// applied for code generation; they mirror the inherited Song fields.
+// ignore_for_file: overridden_fields
 import 'package:hive/hive.dart';
 import '../../domain/entities/song.dart';
 
