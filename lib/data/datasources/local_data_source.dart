@@ -47,17 +47,26 @@ class LocalDataSource {
 
   Future<void> addToRecentlyPlayed(SongModel song) async {
     final box = await _getRecentlyPlayedBox();
-    final key = song.trackId.toString();
-    // Delete first so re-insertion places it at the end (most recent)
-    await box.delete(key);
-    await box.put(key, song);
+    // Hive stores keys in sorted order, not insertion order, so we cannot rely
+    // on delete+put to move an entry to the "end". Instead we use
+    // auto-incrementing integer keys via box.add: they are monotonically
+    // increasing, so ascending key order equals insertion (chronological)
+    // order regardless of Hive's internal sorting.
+    final existingKeys = box.keys
+        .where((k) => box.get(k)?.trackId == song.trackId)
+        .toList();
+    await box.deleteAll(existingKeys);
+    await box.add(song);
     if (box.length > _maxRecentlyPlayed) {
+      // box.keys.first is the smallest (oldest) integer key.
       await box.delete(box.keys.first);
     }
   }
 
   Future<List<SongModel>> getRecentlyPlayed() async {
     final box = await _getRecentlyPlayedBox();
+    // Values are ordered by ascending key (chronological), so reverse to put
+    // the most recently played first.
     return box.values.toList().reversed.toList();
   }
 
