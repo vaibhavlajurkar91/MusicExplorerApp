@@ -1,4 +1,4 @@
-# Music Explorer App (conflict test branch)
+# Music Explorer App — Discover & Play (conflict test branch)
 
 A Flutter application for discovering and managing music using the iTunes API. Built with clean architecture principles and MVC pattern using GetX for state management.
 
