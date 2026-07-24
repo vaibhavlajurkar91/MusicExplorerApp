@@ -27,6 +27,7 @@ class HomeController extends GetxController {
 
   int _offset = 0;
   static const int _limit = 20;
+  static const int _maxHistory = 10;
 
   @override
   void onInit() {
@@ -70,6 +71,9 @@ class HomeController extends GetxController {
         await repository.addToSearchHistory(query);
         _searchHistory.remove(query);
         _searchHistory.insert(0, query);
+        if (_searchHistory.length > _maxHistory) {
+          _searchHistory.removeRange(_maxHistory, _searchHistory.length);
+        }
       }
     }
 
