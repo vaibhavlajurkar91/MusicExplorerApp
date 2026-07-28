@@ -33,7 +33,6 @@ class PlaylistController extends GetxController {
     }
   }
 
-  /// Returns the created playlist, or null if it could not be saved.
   Future<Playlist?> createPlaylist(String name) async {
     final playlist = Playlist(
       id: DateTime.now().millisecondsSinceEpoch.toString(),

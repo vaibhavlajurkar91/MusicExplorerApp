@@ -177,7 +177,8 @@ class AddToPlaylistSheet extends StatelessWidget {
     if (trimmed.isEmpty) return;
     final newPlaylist = await controller.createPlaylist(trimmed);
     if (dialogContext.mounted) Navigator.pop(dialogContext);
-    // createPlaylist reports its own failure; nothing to add the song to
+    // Only proceed if the playlist was actually created; otherwise adding to
+    // controller.playlists.last could target the wrong playlist or crash.
     if (newPlaylist == null) return;
     await controller.addSongToPlaylist(newPlaylist, song);
     if (sheetContext.mounted) Navigator.pop(sheetContext);

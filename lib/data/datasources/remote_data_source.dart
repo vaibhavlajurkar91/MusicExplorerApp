@@ -4,7 +4,7 @@ import '../models/song_model.dart';
 
 class RemoteDataSource {
   final http.Client client;
-  static const String baseUrl = 'https://itunes.apple.com';
+  static const String host = 'itunes.apple.com';
 
   RemoteDataSource({required this.client});
 
@@ -15,9 +15,12 @@ class RemoteDataSource {
   }) async {
     try {
       final response = await client.get(
-        Uri.parse(
-          '$baseUrl/search?term=$query&entity=song&limit=$limit&offset=$offset',
-        ),
+        Uri.https(host, '/search', {
+          'term': query,
+          'entity': 'song',
+          'limit': '$limit',
+          'offset': '$offset',
+        }),
       );
 
       if (response.statusCode == 200) {
