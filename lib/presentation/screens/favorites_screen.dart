@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/favorites_controller.dart';
+import '../controllers/player_controller.dart';
 import '../controllers/recently_played_controller.dart';
 import '../widgets/shimmer_song_card.dart';
 import '../widgets/song_card.dart';
@@ -79,6 +80,8 @@ class FavoritesScreen extends StatelessWidget {
                     song: song,
                     onTap: () {
                       Get.find<RecentlyPlayedController>().addSong(song);
+                      Get.find<PlayerController>()
+                          .playQueue(controller.favorites.toList(), index);
                       Get.to(() => SongDetailScreen(song: song));
                     },
                   ),

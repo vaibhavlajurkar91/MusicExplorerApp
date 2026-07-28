@@ -27,7 +27,6 @@ class HomeController extends GetxController {
 
   int _offset = 0;
   static const int _limit = 20;
-  static const int _maxHistory = 10;
 
   @override
   void onInit() {
@@ -69,11 +68,8 @@ class HomeController extends GetxController {
       if (!fromGenre) {
         _selectedGenre.value = null;
         await repository.addToSearchHistory(query);
-        _searchHistory.remove(query);
-        _searchHistory.insert(0, query);
-        if (_searchHistory.length > _maxHistory) {
-          _searchHistory.removeRange(_maxHistory, _searchHistory.length);
-        }
+        // Re-read so the panel reflects the stored (capped, deduped) history
+        _searchHistory.value = await repository.getSearchHistory();
       }
     }
 

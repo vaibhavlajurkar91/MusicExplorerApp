@@ -1,7 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:share_plus/share_plus.dart';
 import '../../domain/entities/song.dart';
 import '../controllers/player_controller.dart';
 import '../controllers/song_detail_controller.dart';
@@ -12,39 +11,24 @@ class SongDetailScreen extends StatelessWidget {
 
   const SongDetailScreen({super.key, required this.song});
 
-  String _formatDuration(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final minutes = twoDigits(duration.inMinutes.remainder(60));
-    final seconds = twoDigits(duration.inSeconds.remainder(60));
-    return '$minutes:$seconds';
+  String _fmt(Duration d) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${two(d.inMinutes.remainder(60))}:${two(d.inSeconds.remainder(60))}';
   }
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(
+    final detail = Get.put(
       SongDetailController(repository: Get.find(), song: song),
     );
+    final player = Get.find<PlayerController>();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Song Details'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.share),
-            tooltip: 'Share',
-            onPressed: () {
-              final buffer = StringBuffer(
-                'Check out "${song.trackName}" by ${song.artistName}',
-              );
-              if (song.previewUrl != null) {
-                buffer.write('\n${song.previewUrl}');
-              }
-              Share.share(buffer.toString(), subject: song.trackName);
-            },
-          ),
-          Obx(() {
-            final player = Get.find<PlayerController>();
-            return IconButton(
+          Obx(
+            () => IconButton(
               icon: Icon(
                 player.hasSleepTimer ? Icons.bedtime : Icons.bedtime_outlined,
                 color: player.hasSleepTimer
@@ -53,17 +37,47 @@ class SongDetailScreen extends StatelessWidget {
               ),
               tooltip: 'Sleep timer',
               onPressed: () => SleepTimerSheet.show(context),
-            );
-          }),
-          Obx(
-            () => IconButton(
-              icon: Icon(
-                controller.isFavorite ? Icons.favorite : Icons.favorite_border,
-                color: controller.isFavorite ? Colors.red : null,
-              ),
-              onPressed: () => controller.toggleFavorite(),
             ),
           ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'add_queue') {
+                player.addToQueue(song);
+                Get.snackbar('Queue', 'Added to queue',
+                    snackPosition: SnackPosition.BOTTOM);
+              } else if (value == 'play_next') {
+                player.addNext(song);
+                Get.snackbar('Queue', 'Will play next',
+                    snackPosition: SnackPosition.BOTTOM);
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'add_queue',
+                child: Row(children: [
+                  Icon(Icons.queue_music),
+                  SizedBox(width: 8),
+                  Text('Add to Queue'),
+                ]),
+              ),
+              PopupMenuItem(
+                value: 'play_next',
+                child: Row(children: [
+                  Icon(Icons.playlist_add),
+                  SizedBox(width: 8),
+                  Text('Play Next'),
+                ]),
+              ),
+            ],
+          ),
+          Obx(() => IconButton(
+                icon: Icon(
+                  detail.isFavorite ? Icons.favorite : Icons.favorite_border,
+                  color: detail.isFavorite ? Colors.red : null,
+                ),
+                onPressed: detail.toggleFavorite,
+              )),
         ],
       ),
       body: SingleChildScrollView(
@@ -80,13 +94,13 @@ class SongDetailScreen extends StatelessWidget {
                   width: 250,
                   height: 250,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
+                  placeholder: (_, __) => Container(
                     width: 250,
                     height: 250,
                     color: Colors.grey[300],
                     child: const Center(child: CircularProgressIndicator()),
                   ),
-                  errorWidget: (context, url, error) => Container(
+                  errorWidget: (_, __, ___) => Container(
                     width: 250,
                     height: 250,
                     color: Colors.grey[300],
@@ -97,7 +111,7 @@ class SongDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 children: [
                   Text(
@@ -138,47 +152,98 @@ class SongDetailScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 32),
-            if (song.previewUrl != null) ...[
+            if (song.previewUrl != null && !player.playbackSupported) ...[
+              // No just_audio backend on Windows/Linux: show why instead of a
+              // play button that would silently do nothing.
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  PlayerController.unsupportedPlatformMessage,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: Colors.grey[600]),
+                ),
+              ),
+            ] else if (song.previewUrl != null) ...[
               Obx(() {
-                final player = controller.player;
-                final isThisSong =
+                final isCurrent =
                     player.currentSong?.trackId == song.trackId;
-                final isPlaying = isThisSong && player.isPlaying;
-                final position =
-                    isThisSong ? player.position : Duration.zero;
-                final duration =
-                    isThisSong ? player.duration : Duration.zero;
 
-                return Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                      child: Row(
+                if (isCurrent) {
+                  return Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Row(
+                          children: [
+                            Text(_fmt(player.position.value)),
+                            Expanded(
+                              child: Builder(builder: (context) {
+                                // Duration resets before the new position
+                                // during a track change; clamp so the Slider
+                                // never sees value > max.
+                                final max =
+                                    player.duration.value.inSeconds > 0
+                                        ? player.duration.value.inSeconds
+                                            .toDouble()
+                                        : 1.0;
+                                return Slider(
+                                  value: player.position.value.inSeconds
+                                      .toDouble()
+                                      .clamp(0.0, max),
+                                  max: max,
+                                  onChanged: (v) => player
+                                      .seekTo(Duration(seconds: v.toInt())),
+                                );
+                              }),
+                            ),
+                            Text(_fmt(player.duration.value)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(_formatDuration(position)),
-                          Expanded(
-                            child: Slider(
-                              value: position.inSeconds.toDouble(),
-                              max: duration.inSeconds.toDouble() > 0
-                                  ? duration.inSeconds.toDouble()
-                                  : 1,
-                              onChanged: (value) {
-                                controller
-                                    .seekTo(Duration(seconds: value.toInt()));
-                              },
+                          IconButton(
+                            icon: const Icon(Icons.skip_previous, size: 36),
+                            onPressed: player.hasPrev ? player.previous : null,
+                          ),
+                          const SizedBox(width: 8),
+                          FloatingActionButton.large(
+                            onPressed: player.playPause,
+                            child: Icon(
+                              player.isPlaying.value ? Icons.pause : Icons.play_arrow,
+                              size: 48,
                             ),
                           ),
-                          Text(_formatDuration(duration)),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.skip_next, size: 36),
+                            onPressed: player.hasNext ? player.next : null,
+                          ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 16),
+                    ],
+                  );
+                }
+
+                // Song is not currently playing — show a simple play button.
+                return Column(
+                  children: [
                     FloatingActionButton.large(
-                      onPressed: () => player.togglePlayPause(),
-                      child: Icon(
-                        isPlaying ? Icons.pause : Icons.play_arrow,
-                        size: 48,
-                      ),
+                      onPressed: () => player.playQueue([song], 0),
+                      child: const Icon(Icons.play_arrow, size: 48),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Tap to play preview',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: Colors.grey[600]),
                     ),
                   ],
                 );
@@ -193,11 +258,9 @@ class SongDetailScreen extends StatelessWidget {
               ),
             ] else ...[
               const Padding(
-                padding: EdgeInsets.all(24.0),
-                child: Text(
-                  'Preview not available',
-                  style: TextStyle(color: Colors.grey),
-                ),
+                padding: EdgeInsets.all(24),
+                child: Text('Preview not available',
+                    style: TextStyle(color: Colors.grey)),
               ),
             ],
             const SizedBox(height: 32),

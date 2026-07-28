@@ -8,11 +8,13 @@ import 'add_to_playlist_sheet.dart';
 class SongCard extends StatelessWidget {
   final Song song;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   const SongCard({
     super.key,
     required this.song,
     required this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -89,6 +91,11 @@ class SongCard extends StatelessWidget {
           );
         }),
         onTap: onTap,
+        // Callers that supply their own long-press menu are responsible for
+        // offering "Add to Playlist" themselves; everyone else keeps the
+        // straight-to-playlist shortcut.
+        onLongPress:
+            onLongPress ?? () => AddToPlaylistSheet.show(context, song),
       ),
     );
   }
