@@ -23,7 +23,7 @@ void main() {
   tearDown(() async {
     await Hive.close();
     await hiveDirectory.delete(recursive: true);
-    await Get.reset();
+    Get.reset();
   });
 
   testWidgets('shows the music explorer home screen', (tester) async {
