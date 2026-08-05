@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/player_controller.dart';
-import '../screens/song_detail_screen.dart';
+import '../screens/queue_screen.dart';
 import 'sleep_timer_sheet.dart';
 
 class MiniPlayer extends StatelessWidget {
@@ -11,16 +11,16 @@ class MiniPlayer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final player = Get.find<PlayerController>();
+
     return Obx(() {
-      if (!player.hasActiveSong) return const SizedBox.shrink();
+      if (player.queue.isEmpty) return const SizedBox.shrink();
 
       final song = player.currentSong!;
-      final progress = player.duration.inMilliseconds > 0
-          ? player.position.inMilliseconds / player.duration.inMilliseconds
-          : 0.0;
-
+      // No playback backend on this platform: keep the queue visible but make
+      // it obvious the transport controls can't do anything.
+      final canPlay = player.playbackSupported;
       return GestureDetector(
-        onTap: () => Get.to(() => SongDetailScreen(song: song)),
+        onTap: () => Get.to(() => const QueueScreen()),
         child: Container(
           height: 68,
           decoration: BoxDecoration(
@@ -33,78 +33,77 @@ class MiniPlayer extends StatelessWidget {
               ),
             ],
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          child: Row(
             children: [
-              LinearProgressIndicator(
-                value: progress.clamp(0.0, 1.0),
-                minHeight: 2,
-                backgroundColor: Colors.grey[300],
+              const SizedBox(width: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: CachedNetworkImage(
+                  imageUrl: song.artworkUrl100,
+                  width: 44,
+                  height: 44,
+                  fit: BoxFit.cover,
+                  placeholder: (_, __) => Container(
+                    width: 44,
+                    height: 44,
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.music_note, size: 20),
+                  ),
+                  errorWidget: (_, __, ___) => Container(
+                    width: 44,
+                    height: 44,
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.music_note, size: 20),
+                  ),
+                ),
               ),
+              const SizedBox(width: 12),
               Expanded(
-                child: Row(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ClipRRect(
-                      child: CachedNetworkImage(
-                        imageUrl: song.artworkUrl100,
-                        width: 56,
-                        height: 56,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, __, ___) => Container(
-                          width: 56,
-                          height: 56,
-                          color: Colors.grey[300],
-                          child: const Icon(Icons.music_note),
-                        ),
+                    Text(
+                      song.trackName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            song.trackName,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(fontWeight: FontWeight.w600),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Text(
-                            song.artistName,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(color: Colors.grey[600]),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
+                    Text(
+                      canPlay
+                          ? song.artistName
+                          : PlayerController.unsupportedPlatformMessage,
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    if (player.hasSleepTimer)
-                      IconButton(
-                        icon: const Icon(Icons.bedtime, size: 20),
-                        color: Theme.of(context).colorScheme.primary,
-                        tooltip: 'Sleep timer active',
-                        onPressed: () => SleepTimerSheet.show(context),
-                      ),
-                    IconButton(
-                      icon: Icon(
-                        player.isPlaying
-                            ? Icons.pause_rounded
-                            : Icons.play_arrow_rounded,
-                        size: 32,
-                      ),
-                      onPressed: () => player.togglePlayPause(),
-                    ),
-                    const SizedBox(width: 4),
                   ],
                 ),
               ),
+              if (player.hasSleepTimer)
+                IconButton(
+                  icon: const Icon(Icons.bedtime, size: 20),
+                  color: Theme.of(context).colorScheme.primary,
+                  tooltip: 'Sleep timer active',
+                  onPressed: () => SleepTimerSheet.show(context),
+                ),
+              IconButton(
+                icon: const Icon(Icons.skip_previous),
+                onPressed:
+                    canPlay && player.hasPrev ? player.previous : null,
+              ),
+              IconButton(
+                icon: Icon(player.isPlaying.value ? Icons.pause : Icons.play_arrow),
+                onPressed: canPlay ? player.playPause : null,
+              ),
+              IconButton(
+                icon: const Icon(Icons.skip_next),
+                onPressed: canPlay && player.hasNext ? player.next : null,
+              ),
+              const SizedBox(width: 4),
             ],
           ),
         ),

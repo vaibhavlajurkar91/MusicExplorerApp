@@ -2,7 +2,9 @@
 
 part of 'song_model.dart';
 
-
+// **************************************************************************
+// TypeAdapterGenerator
+// **************************************************************************
 
 class SongModelAdapter extends TypeAdapter<SongModel> {
   @override

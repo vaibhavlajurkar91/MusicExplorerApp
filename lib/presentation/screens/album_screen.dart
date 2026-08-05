@@ -218,13 +218,6 @@ class _TrackTile extends StatelessWidget {
 
   const _TrackTile({required this.song, required this.onTap});
 
-  String _formatDuration(int? millis) {
-    if (millis == null) return '--:--';
-    final duration = Duration(milliseconds: millis);
-    final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '${duration.inMinutes}:$seconds';
-  }
-
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
@@ -265,7 +258,7 @@ class _TrackTile extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              _formatDuration(song.trackTimeMillis),
+              song.formattedDuration,
               style: TextStyle(color: Colors.grey[600], fontSize: 12),
             ),
             Obx(() {

@@ -5,7 +5,7 @@ import '../models/song_model.dart';
 
 class RemoteDataSource {
   final http.Client client;
-  static const String baseUrl = 'https://itunes.apple.com';
+  static const String host = 'itunes.apple.com';
 
   RemoteDataSource({required this.client});
 
@@ -16,9 +16,12 @@ class RemoteDataSource {
   }) async {
     try {
       final response = await client.get(
-        Uri.parse(
-          '$baseUrl/search?term=$query&entity=song&limit=$limit&offset=$offset',
-        ),
+        Uri.https(host, '/search', {
+          'term': query,
+          'entity': 'song',
+          'limit': '$limit',
+          'offset': '$offset',
+        }),
       );
 
       if (response.statusCode == 200) {
@@ -42,7 +45,11 @@ class RemoteDataSource {
     int limit = 25,
   }) async {
     try {
-      final results = await _lookup('id=$artistId&entity=album&limit=$limit');
+      final results = await _lookup({
+        'id': '$artistId',
+        'entity': 'album',
+        'limit': '$limit',
+      });
       final albums = results
           .where((json) => json['wrapperType'] == 'collection')
           .map((json) => AlbumModel.fromJson(json))
@@ -69,7 +76,11 @@ class RemoteDataSource {
     int limit = 25,
   }) async {
     try {
-      final results = await _lookup('id=$artistId&entity=song&limit=$limit');
+      final results = await _lookup({
+        'id': '$artistId',
+        'entity': 'song',
+        'limit': '$limit',
+      });
       return results
           .where((json) => json['wrapperType'] == 'track')
           .map((json) => SongModel.fromJson(json))
@@ -82,7 +93,11 @@ class RemoteDataSource {
   /// Every track on an album, ordered by track number.
   Future<List<SongModel>> getAlbumTracks(int collectionId) async {
     try {
-      final results = await _lookup('id=$collectionId&entity=song&limit=200');
+      final results = await _lookup({
+        'id': '$collectionId',
+        'entity': 'song',
+        'limit': '200',
+      });
       final tracks = results
           .where((json) => json['wrapperType'] == 'track')
           .map((json) => SongModel.fromJson(json))
@@ -98,8 +113,12 @@ class RemoteDataSource {
     }
   }
 
-  Future<List<Map<String, dynamic>>> _lookup(String query) async {
-    final response = await client.get(Uri.parse('$baseUrl/lookup?$query'));
+  Future<List<Map<String, dynamic>>> _lookup(
+    Map<String, String> queryParameters,
+  ) async {
+    final response = await client.get(
+      Uri.https(host, '/lookup', queryParameters),
+    );
 
     if (response.statusCode != 200) {
       throw Exception('Request failed: ${response.statusCode}');
