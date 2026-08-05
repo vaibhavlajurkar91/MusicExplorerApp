@@ -44,6 +44,18 @@ class SongModel extends Song {
   @HiveField(8)
   final DateTime? releaseDate;
 
+  @override
+  @HiveField(9)
+  final int? artistId;
+
+  @override
+  @HiveField(10)
+  final int? collectionId;
+
+  @override
+  @HiveField(11)
+  final int? trackNumber;
+
   const SongModel({
     required this.trackId,
     required this.trackName,
@@ -54,6 +66,9 @@ class SongModel extends Song {
     this.trackTimeMillis,
     this.primaryGenreName,
     this.releaseDate,
+    this.artistId,
+    this.collectionId,
+    this.trackNumber,
   }) : super(
           trackId: trackId,
           trackName: trackName,
@@ -64,6 +79,9 @@ class SongModel extends Song {
           trackTimeMillis: trackTimeMillis,
           primaryGenreName: primaryGenreName,
           releaseDate: releaseDate,
+          artistId: artistId,
+          collectionId: collectionId,
+          trackNumber: trackNumber,
         );
 
   factory SongModel.fromJson(Map<String, dynamic> json) {
@@ -79,6 +97,9 @@ class SongModel extends Song {
       releaseDate: json['releaseDate'] != null
           ? DateTime.tryParse(json['releaseDate'])
           : null,
+      artistId: json['artistId'],
+      collectionId: json['collectionId'],
+      trackNumber: json['trackNumber'],
     );
   }
 
@@ -93,6 +114,9 @@ class SongModel extends Song {
       'trackTimeMillis': trackTimeMillis,
       'primaryGenreName': primaryGenreName,
       'releaseDate': releaseDate?.toIso8601String(),
+      'artistId': artistId,
+      'collectionId': collectionId,
+      'trackNumber': trackNumber,
     };
   }
 
@@ -107,6 +131,9 @@ class SongModel extends Song {
       trackTimeMillis: song.trackTimeMillis,
       primaryGenreName: song.primaryGenreName,
       releaseDate: song.releaseDate,
+      artistId: song.artistId,
+      collectionId: song.collectionId,
+      trackNumber: song.trackNumber,
     );
   }
 }

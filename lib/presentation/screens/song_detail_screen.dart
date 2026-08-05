@@ -2,10 +2,13 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../domain/entities/album.dart';
 import '../../domain/entities/song.dart';
 import '../controllers/player_controller.dart';
 import '../controllers/song_detail_controller.dart';
 import '../widgets/sleep_timer_sheet.dart';
+import 'album_screen.dart';
+import 'artist_screen.dart';
 
 class SongDetailScreen extends StatelessWidget {
   final Song song;
@@ -24,6 +27,7 @@ class SongDetailScreen extends StatelessWidget {
     final controller = Get.put(
       SongDetailController(repository: Get.find(), song: song),
     );
+    final album = Album.fromSong(song);
 
     return Scaffold(
       appBar: AppBar(
@@ -109,22 +113,28 @@ class SongDetailScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    song.artistName,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(color: Colors.grey[600]),
-                    textAlign: TextAlign.center,
+                  _BrowseLink(
+                    label: song.artistName,
+                    style: Theme.of(context).textTheme.titleMedium,
+                    fallbackColor: Colors.grey[600],
+                    onTap: song.artistId == null
+                        ? null
+                        : () => Get.to(
+                              () => ArtistScreen(
+                                artistId: song.artistId!,
+                                artistName: song.artistName,
+                                artworkUrl: song.artworkUrl100,
+                              ),
+                            ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    song.collectionName,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: Colors.grey[500]),
-                    textAlign: TextAlign.center,
+                  _BrowseLink(
+                    label: song.collectionName,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    fallbackColor: Colors.grey[500],
+                    onTap: album == null
+                        ? null
+                        : () => Get.to(() => AlbumScreen(album: album)),
                   ),
                   if (song.primaryGenreName != null) ...[
                     const SizedBox(height: 16),
@@ -201,6 +211,56 @@ class SongDetailScreen extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 32),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Artist / album line under the track title. Renders as plain text when the
+/// iTunes payload carried no id to browse to.
+class _BrowseLink extends StatelessWidget {
+  final String label;
+  final TextStyle? style;
+  final Color? fallbackColor;
+  final VoidCallback? onTap;
+
+  const _BrowseLink({
+    required this.label,
+    required this.style,
+    required this.fallbackColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isLink = onTap != null;
+    final text = Text(
+      label,
+      style: style?.copyWith(
+        color: isLink ? Theme.of(context).colorScheme.primary : fallbackColor,
+      ),
+      textAlign: TextAlign.center,
+    );
+
+    if (!isLink) return text;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(child: text),
+            const SizedBox(width: 2),
+            Icon(
+              Icons.chevron_right,
+              size: 18,
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ],
         ),
       ),

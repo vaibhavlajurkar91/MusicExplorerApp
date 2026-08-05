@@ -10,6 +10,9 @@ class Song extends Equatable {
   final int? trackTimeMillis;
   final String? primaryGenreName;
   final DateTime? releaseDate;
+  final int? artistId;
+  final int? collectionId;
+  final int? trackNumber;
 
   const Song({
     required this.trackId,
@@ -21,6 +24,9 @@ class Song extends Equatable {
     this.trackTimeMillis,
     this.primaryGenreName,
     this.releaseDate,
+    this.artistId,
+    this.collectionId,
+    this.trackNumber,
   });
 
   @override
@@ -34,5 +40,8 @@ class Song extends Equatable {
         trackTimeMillis,
         primaryGenreName,
         releaseDate,
+        artistId,
+        collectionId,
+        trackNumber,
       ];
 }
