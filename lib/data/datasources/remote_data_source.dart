@@ -90,7 +90,11 @@ class RemoteDataSource {
     }
   }
 
-  /// Every track on an album, ordered by track number.
+  /// Every track on an album, ordered by disc then track number.
+  ///
+  /// iTunes restarts `trackNumber` on each disc, so multi-disc albums must be
+  /// ordered by `discNumber` first — sorting on `trackNumber` alone would
+  /// interleave the discs (1,1,2,2,…).
   Future<List<SongModel>> getAlbumTracks(int collectionId) async {
     try {
       final results = await _lookup({
@@ -103,9 +107,11 @@ class RemoteDataSource {
           .map((json) => SongModel.fromJson(json))
           .toList();
 
-      tracks.sort(
-        (a, b) => (a.trackNumber ?? 0).compareTo(b.trackNumber ?? 0),
-      );
+      tracks.sort((a, b) {
+        final disc = (a.discNumber ?? 1).compareTo(b.discNumber ?? 1);
+        if (disc != 0) return disc;
+        return (a.trackNumber ?? 0).compareTo(b.trackNumber ?? 0);
+      });
 
       return tracks;
     } catch (e) {

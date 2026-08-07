@@ -59,6 +59,10 @@ class SongModel extends Song {
   @HiveField(11)
   int? get trackNumber => super.trackNumber;
 
+  @override
+  @HiveField(12)
+  int? get discNumber => super.discNumber;
+
   const SongModel({
     required super.trackId,
     required super.trackName,
@@ -72,6 +76,7 @@ class SongModel extends Song {
     super.artistId,
     super.collectionId,
     super.trackNumber,
+    super.discNumber,
   });
 
   factory SongModel.fromJson(Map<String, dynamic> json) {
@@ -90,6 +95,7 @@ class SongModel extends Song {
       artistId: json['artistId'],
       collectionId: json['collectionId'],
       trackNumber: json['trackNumber'],
+      discNumber: json['discNumber'],
     );
   }
 
@@ -107,6 +113,7 @@ class SongModel extends Song {
       'artistId': artistId,
       'collectionId': collectionId,
       'trackNumber': trackNumber,
+      'discNumber': discNumber,
     };
   }
 
@@ -124,6 +131,7 @@ class SongModel extends Song {
       artistId: song.artistId,
       collectionId: song.collectionId,
       trackNumber: song.trackNumber,
+      discNumber: song.discNumber,
     );
   }
 }

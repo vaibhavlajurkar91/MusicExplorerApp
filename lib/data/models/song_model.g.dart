@@ -29,13 +29,14 @@ class SongModelAdapter extends TypeAdapter<SongModel> {
       artistId: fields[9] as int?,
       collectionId: fields[10] as int?,
       trackNumber: fields[11] as int?,
+      discNumber: fields[12] as int?,
     );
   }
 
   @override
   void write(BinaryWriter writer, SongModel obj) {
     writer
-      ..writeByte(12)
+      ..writeByte(13)
       ..writeByte(0)
       ..write(obj.trackId)
       ..writeByte(1)
@@ -59,7 +60,9 @@ class SongModelAdapter extends TypeAdapter<SongModel> {
       ..writeByte(10)
       ..write(obj.collectionId)
       ..writeByte(11)
-      ..write(obj.trackNumber);
+      ..write(obj.trackNumber)
+      ..writeByte(12)
+      ..write(obj.discNumber);
   }
 
   @override

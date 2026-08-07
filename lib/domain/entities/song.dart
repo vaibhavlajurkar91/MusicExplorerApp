@@ -13,6 +13,7 @@ class Song extends Equatable {
   final int? artistId;
   final int? collectionId;
   final int? trackNumber;
+  final int? discNumber;
 
   const Song({
     required this.trackId,
@@ -27,6 +28,7 @@ class Song extends Equatable {
     this.artistId,
     this.collectionId,
     this.trackNumber,
+    this.discNumber,
   });
 
   String get formattedDuration {
@@ -51,5 +53,6 @@ class Song extends Equatable {
         artistId,
         collectionId,
         trackNumber,
+        discNumber,
       ];
 }
