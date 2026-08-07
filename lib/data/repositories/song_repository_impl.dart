@@ -1,3 +1,4 @@
+import '../../domain/entities/album.dart';
 import '../../domain/entities/playlist.dart';
 import '../../domain/entities/song.dart';
 import '../../domain/repositories/song_repository.dart';
@@ -26,6 +27,21 @@ class SongRepositoryImpl implements SongRepository {
       offset: offset,
       limit: limit,
     );
+  }
+
+  @override
+  Future<List<Album>> getArtistAlbums(int artistId, {int limit = 25}) async {
+    return await remoteDataSource.getArtistAlbums(artistId, limit: limit);
+  }
+
+  @override
+  Future<List<Song>> getArtistTopSongs(int artistId, {int limit = 25}) async {
+    return await remoteDataSource.getArtistTopSongs(artistId, limit: limit);
+  }
+
+  @override
+  Future<List<Song>> getAlbumTracks(int collectionId) async {
+    return await remoteDataSource.getAlbumTracks(collectionId);
   }
 
   @override

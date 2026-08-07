@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../domain/entities/song.dart';
 import '../controllers/favorites_controller.dart';
+import '../screens/artist_screen.dart';
 import 'add_to_playlist_sheet.dart';
 
 class SongCard extends StatelessWidget {
@@ -57,14 +58,29 @@ class SongCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 4),
-            Text(
-              song.artistName,
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 14,
+            // Tapping the artist name browses to the artist instead of opening
+            // the song; the gesture wins over the surrounding ListTile.
+            GestureDetector(
+              onTap: song.artistId == null
+                  ? null
+                  : () => Get.to(
+                        () => ArtistScreen(
+                          artistId: song.artistId!,
+                          artistName: song.artistName,
+                          artworkUrl: song.artworkUrl100,
+                        ),
+                      ),
+              child: Text(
+                song.artistName,
+                style: TextStyle(
+                  color: song.artistId == null
+                      ? Colors.grey[600]
+                      : Theme.of(context).colorScheme.primary,
+                  fontSize: 14,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 2),
             Text(
